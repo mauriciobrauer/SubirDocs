@@ -6,11 +6,14 @@ Una aplicación Next.js 15 con TypeScript que permite a los usuarios subir archi
 
 - ✅ **Next.js 15** con App Router
 - ✅ **TypeScript** para tipado estático
-- ✅ **Sistema de login simulado** con estado local
+- ✅ **4 usuarios con login simplificado** (María, Carlos, Ana, David)
 - ✅ **Integración con Dropbox** para subir archivos
 - ✅ **Soporte para PDF y DOC** (.pdf, .doc, .docx)
 - ✅ **Enlaces compartidos** de Dropbox
 - ✅ **Interfaz moderna** con Tailwind CSS
+- ✅ **Carpetas individuales por usuario** en Dropbox
+- ✅ **Refresh automático** de lista de archivos
+- ✅ **Deploy listo para Vercel** con configuración optimizada
 - ✅ **Arquitectura preparada** para Firebase Auth y Storage
 
 ## Instalación
@@ -55,16 +58,19 @@ Una aplicación Next.js 15 con TypeScript que permite a los usuarios subir archi
    http://localhost:3000
    ```
 
-3. **Credenciales de prueba:**
-   - **Admin:** admin@example.com / admin123
-   - **Usuario:** user@example.com / user123
+3. **Usuarios disponibles:**
+   - **María García:** maria.garcia@empresa.com
+   - **Carlos Rodríguez:** carlos.rodriguez@empresa.com
+   - **Ana Martínez:** ana.martinez@empresa.com
+   - **David López:** david.lopez@empresa.com
 
 ## Funcionalidades
 
 ### Sistema de Autenticación
-- Login simulado con email y contraseña
+- Login simplificado con botones de acceso rápido
 - Estado persistente en localStorage
-- Usuarios predefinidos para pruebas
+- 4 usuarios predefinidos para pruebas
+- Carpetas individuales en Dropbox por usuario
 
 ### Subida de Archivos
 - Drag & drop para subir archivos
@@ -73,10 +79,11 @@ Una aplicación Next.js 15 con TypeScript que permite a los usuarios subir archi
 - Feedback visual durante la subida
 
 ### Gestión de Archivos
-- Lista de archivos subidos
+- Lista de archivos subidos por usuario
 - Enlaces compartidos de Dropbox
 - Información de archivo (tamaño, fecha)
 - Botones para copiar enlaces y ver archivos
+- Refresh automático después de subir archivos
 
 ## Estructura del Proyecto
 
@@ -126,6 +133,18 @@ La aplicación está estructurada para facilitar la migración a Firebase:
 - **Dropbox API** - Almacenamiento en la nube
 - **Lucide React** - Iconos
 - **React Context** - Gestión de estado
+
+## 🚀 Deploy en Vercel
+
+La aplicación está configurada para deploy automático en Vercel:
+
+1. **Conecta tu repositorio** a Vercel
+2. **Configura las variables de entorno**:
+   - `DROPBOX_ACCESS_TOKEN`: Tu token de Dropbox
+   - `NEXT_PUBLIC_APP_NAME`: Nombre de la app
+3. **Deploy automático** en cada push a main
+
+Ver [DEPLOY.md](./DEPLOY.md) para instrucciones detalladas.
 
 ## Scripts Disponibles
 

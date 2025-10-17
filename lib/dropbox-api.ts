@@ -147,18 +147,41 @@ export class DropboxAPI {
   }
 
   static async getShareLink(filePath: string): Promise<string> {
-    const response = await this.makeRequest('/sharing/create_shared_link_with_settings', {
-      method: 'POST',
-      body: JSON.stringify({
-        path: filePath,
-        settings: {
-          requested_visibility: 'public'
-        }
-      })
-    });
+    try {
+      const response = await this.makeRequest('/sharing/create_shared_link_with_settings', {
+        method: 'POST',
+        body: JSON.stringify({
+          path: filePath,
+          settings: {
+            requested_visibility: 'public'
+          }
+        })
+      });
 
-    const result = await response.json();
-    return result.url;
+      const result = await response.json();
+      return result.url;
+    } catch (error: any) {
+      // Si el enlace ya existe, intentar obtenerlo
+      if (error.message.includes('shared_link_already_exists')) {
+        try {
+          const listResponse = await this.makeRequest('/sharing/list_shared_links', {
+            method: 'POST',
+            body: JSON.stringify({
+              path: filePath,
+              direct_only: true
+            })
+          });
+
+          const listResult = await listResponse.json();
+          if (listResult.links && listResult.links.length > 0) {
+            return listResult.links[0].url;
+          }
+        } catch (listError) {
+          console.error('Error listing shared links:', listError);
+        }
+      }
+      throw error;
+    }
   }
 
   static formatFileSize(bytes: number): string {

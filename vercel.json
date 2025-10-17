@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "functions": {
+    "app/api/upload/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/files/route.ts": {
+      "maxDuration": 10
+    }
+  },
+  "env": {
+    "DROPBOX_ACCESS_TOKEN": "@dropbox_access_token",
+    "NEXT_PUBLIC_APP_NAME": "@next_public_app_name"
+  }
+}
