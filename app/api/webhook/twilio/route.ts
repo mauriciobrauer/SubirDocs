@@ -561,7 +561,7 @@ async function processMediaFile(mediaUrl: string, contentType: string, from: str
              
              logMessage(`🔍 INICIANDO PROCESO DE SUBIDA A DROPBOX`);
              logMessage(`📁 Carpeta destino: ${dropboxFolderName}`);
-             logMessage(`📄 Archivo: ${fileName} (${fileBuffer.length} bytes)`);
+              logMessage(`📄 Archivo: ${fileName} (${fileBuffer.byteLength} bytes)`);
              logMessage(`🔑 Token disponible: ${!!dropboxToken}`);
              logMessage(`🔑 Token tipo: ${dropboxToken.startsWith('sl.u.') ? 'Corta duración' : dropboxToken.startsWith('sl.B') ? 'Larga duración' : 'Desconocido'}`);
              
@@ -576,7 +576,7 @@ async function processMediaFile(mediaUrl: string, contentType: string, from: str
              
              logMessage(`🚀 LLAMANDO A DropboxService.uploadFile con parámetros:`);
              logMessage(`📁 Carpeta: ${dropboxFolderName}`);
-             logMessage(`📄 Archivo: ${fileName} (${fileBuffer.length} bytes)`);
+              logMessage(`📄 Archivo: ${fileName} (${fileBuffer.byteLength} bytes)`);
              logMessage(`🔑 Token disponible: ${!!dropboxToken}`);
              
              await DropboxService.uploadFile(file, dropboxFolderName, dropboxToken);
