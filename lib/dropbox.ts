@@ -44,7 +44,6 @@ export class DropboxService {
     }
     
     // Crear cliente Dropbox con el token específico
-    const fetch = globalThis.fetch || require('node-fetch');
     const dbx = new Dropbox({ 
       accessToken: accessToken,
       fetch: fetch
@@ -131,7 +130,6 @@ export class DropboxService {
     }
     
     // Crear cliente Dropbox con el token específico
-    const fetch = globalThis.fetch || require('node-fetch');
     const dbx = new Dropbox({ 
       accessToken: accessToken,
       fetch: fetch
