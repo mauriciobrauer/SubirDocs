@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "validate-env": "node scripts/validate-env.js",
+    "backup-env": "./scripts/backup-env.sh",
+    "setup-env": "cp .env.template .env.local && echo '✅ Archivo .env.local creado desde template'",
+    "check-config": "npm run validate-env && echo '✅ Configuración validada correctamente'"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",

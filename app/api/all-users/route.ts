@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { getAllUsers as getUsersFromMemory } from '@/lib/users-production';
 
 // Usuarios hardcodeados
 const HARDCODED_USERS = [
@@ -12,8 +13,9 @@ const HARDCODED_USERS = [
 
 export async function GET() {
   try {
-    // Leer usuarios creados automáticamente desde archivo JSON
-    const usersFile = path.join(process.cwd(), 'users.json');
+    // Verificar si estamos en producción (Vercel)
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    
     let autoUsers: Array<{
       id: string;
       email: string;
@@ -22,9 +24,18 @@ export async function GET() {
       createdAt: string;
     }> = [];
 
-    if (fs.existsSync(usersFile)) {
-      const data = fs.readFileSync(usersFile, 'utf-8');
-      autoUsers = JSON.parse(data);
+    if (isProduction) {
+      // En producción, usar el sistema de memoria
+      const memoryUsers = getUsersFromMemory();
+      autoUsers = memoryUsers.filter(user => user.phoneNumber); // Solo usuarios auto-creados
+    } else {
+      // En desarrollo, leer desde archivo JSON
+      const usersFile = path.join(process.cwd(), 'users.json');
+      
+      if (fs.existsSync(usersFile)) {
+        const data = fs.readFileSync(usersFile, 'utf-8');
+        autoUsers = JSON.parse(data);
+      }
     }
 
     // Agregar tipo a usuarios automáticos
@@ -41,7 +52,8 @@ export async function GET() {
       users: allUsers,
       hardcodedCount: HARDCODED_USERS.length,
       autoCreatedCount: autoUsers.length,
-      totalCount: allUsers.length
+      totalCount: allUsers.length,
+      environment: isProduction ? 'production' : 'development'
     });
 
   } catch (error) {

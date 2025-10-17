@@ -114,15 +114,22 @@ export default function LoginForm() {
         // Actualizar la lista de usuarios
         await fetchUsers(false);
         
-        // Mostrar notificación de éxito
-        alert(`Usuario ${userEmail} eliminado exitosamente`);
+        // Mostrar notificación de éxito con advertencia si es necesario
+        if (data.warning) {
+          alert(`Usuario ${userEmail} eliminado exitosamente.\n\n⚠️ Advertencia: ${data.warning}`);
+        } else {
+          alert(`Usuario ${userEmail} eliminado exitosamente`);
+        }
       } else {
         const errorData = await response.json();
-        alert(`Error: ${errorData.error}`);
+        const errorMessage = errorData.details 
+          ? `${errorData.error}\n\nDetalles: ${errorData.details}`
+          : errorData.error;
+        alert(`Error: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Error eliminando usuario:', error);
-      alert('Error al eliminar usuario');
+      alert(`Error al eliminar usuario: ${error instanceof Error ? error.message : 'Error de conexión'}`);
     } finally {
       setIsDeleting(null);
     }

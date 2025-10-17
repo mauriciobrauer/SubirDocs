@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { deleteUser as deleteUserFromMemory, getAllUsers } from '@/lib/users-production';
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -13,7 +14,34 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Leer usuarios desde archivo JSON
+    // Verificar si estamos en producción (Vercel)
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    
+    if (isProduction) {
+      // En producción, usar el sistema de memoria
+      console.log(`⚠️ Modo producción: Eliminación de usuario ${userId} solo en memoria`);
+      
+      const result = deleteUserFromMemory(userId);
+      
+      if (result.success) {
+        return NextResponse.json({
+          success: true,
+          message: result.message,
+          deletedUser: {
+            id: result.user?.id,
+            email: result.user?.email,
+            phoneNumber: result.user?.phoneNumber
+          },
+          warning: 'En producción, los cambios no se persisten. El usuario se recreará en el próximo reinicio.'
+        });
+      } else {
+        return NextResponse.json({ 
+          error: result.message 
+        }, { status: 404 });
+      }
+    }
+
+    // Leer usuarios desde archivo JSON (solo en desarrollo)
     const usersFile = path.join(process.cwd(), 'users.json');
     let users: Array<{
       id: string;
@@ -24,9 +52,17 @@ export async function DELETE(request: NextRequest) {
       createdAt: string;
     }> = [];
 
-    if (fs.existsSync(usersFile)) {
-      const data = fs.readFileSync(usersFile, 'utf-8');
-      users = JSON.parse(data);
+    try {
+      if (fs.existsSync(usersFile)) {
+        const data = fs.readFileSync(usersFile, 'utf-8');
+        users = JSON.parse(data);
+      }
+    } catch (readError) {
+      console.error('Error leyendo archivo de usuarios:', readError);
+      return NextResponse.json({ 
+        error: 'Error al leer la lista de usuarios',
+        details: readError instanceof Error ? readError.message : 'Error desconocido'
+      }, { status: 500 });
     }
 
     // Buscar el usuario a eliminar
@@ -50,10 +86,19 @@ export async function DELETE(request: NextRequest) {
     // Eliminar el usuario del array
     users.splice(userIndex, 1);
 
-    // Guardar usuarios actualizados
-    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+    // Guardar usuarios actualizados (solo en desarrollo)
+    try {
+      fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+      console.log(`✅ Archivo de usuarios actualizado: ${usersFile}`);
+    } catch (writeError) {
+      console.error('Error escribiendo archivo de usuarios:', writeError);
+      return NextResponse.json({ 
+        error: 'Error al guardar los cambios',
+        details: writeError instanceof Error ? writeError.message : 'Error desconocido'
+      }, { status: 500 });
+    }
 
-    // Eliminar archivos locales del usuario
+    // Eliminar archivos locales del usuario (solo en desarrollo)
     const phoneNumber = userToDelete.phoneNumber;
     const userFolder = path.join(process.cwd(), 'tmp-files', phoneNumber);
     
@@ -72,6 +117,7 @@ export async function DELETE(request: NextRequest) {
       } catch (deleteError) {
         console.error('❌ Error eliminando archivos del usuario:', deleteError);
         // No fallar la operación si no se pueden eliminar los archivos
+        console.log('⚠️ Continuando sin eliminar archivos locales');
       }
     }
 
