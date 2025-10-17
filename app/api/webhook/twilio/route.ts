@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import fs from 'fs';
 import path from 'path';
-import { addMessage } from '../../messages/route';
+import { addMessage } from '@/lib/messages';
 import { DropboxService } from '@/lib/dropbox';
 import bcrypt from 'bcryptjs';
 
