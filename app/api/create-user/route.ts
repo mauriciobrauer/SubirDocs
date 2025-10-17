@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-
-// Simulamos una base de datos en memoria para usuarios
-// En producción, esto debería ser una base de datos real
-let users: Array<{
-  id: string;
-  email: string;
-  name: string;
-  password: string;
-  phoneNumber?: string;
-  createdAt: string;
-}> = [];
+import { getUserByEmail, addUser } from '@/lib/users';
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +17,7 @@ export async function POST(request: NextRequest) {
     const email = `${cleanPhoneNumber}@whatsapp.local`;
     
     // Verificar si el usuario ya existe
-    const existingUser = users.find(user => user.email === email);
+    const existingUser = getUserByEmail(email);
     if (existingUser) {
       return NextResponse.json({
         success: true,
@@ -54,7 +44,7 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString()
     };
 
-    users.push(newUser);
+    addUser(newUser);
 
     console.log(`✅ Usuario creado automáticamente:`, {
       id: newUser.id,
@@ -83,24 +73,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Función para obtener un usuario por email (para autenticación)
-export function getUserByEmail(email: string) {
-  return users.find(user => user.email === email);
-}
-
-// Función para obtener un usuario por número de teléfono
-export function getUserByPhoneNumber(phoneNumber: string) {
-  const cleanPhoneNumber = phoneNumber.replace('whatsapp:', '').replace('+', '').replace(/\s/g, '');
-  return users.find(user => user.phoneNumber === cleanPhoneNumber);
-}
-
-// Función para obtener todos los usuarios
-export function getAllUsers() {
-  return users.map(user => ({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    phoneNumber: user.phoneNumber,
-    createdAt: user.createdAt
-  }));
-}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FileText, UserPlus, Save, Cloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 interface ProcessingStatus {
@@ -17,7 +17,7 @@ export default function ProcessingStatus() {
   const [status, setStatus] = useState<ProcessingStatus | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/processing-status');
       if (response.ok) {
@@ -39,7 +39,7 @@ export default function ProcessingStatus() {
     } catch (error) {
       console.error('Error fetching processing status:', error);
     }
-  };
+  }, [isVisible]);
 
 
   useEffect(() => {

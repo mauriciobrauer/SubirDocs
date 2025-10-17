@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogIn, AlertCircle, UserCheck, UserPlus, Phone, Trash2, Loader2, FolderPlus } from 'lucide-react';
 import DropboxLogs from './DropboxLogs';
@@ -26,7 +26,7 @@ export default function LoginForm() {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const { login, isLoading } = useAuth();
 
-  const fetchUsers = async (showLoading = false) => {
+  const fetchUsers = useCallback(async (showLoading = false) => {
     if (showLoading) {
       setIsLoadingUsers(true);
     }
@@ -53,9 +53,9 @@ export default function LoginForm() {
         setIsLoadingUsers(false);
       }
     }
-  };
+  }, [initialLoad, users.length]);
 
-  const checkForNewUsers = async () => {
+  const checkForNewUsers = useCallback(async () => {
     try {
       const response = await fetch('/api/user-created');
       if (response.ok) {
@@ -75,7 +75,7 @@ export default function LoginForm() {
     } catch (error) {
       console.error('Error checking for new users:', error);
     }
-  };
+  }, [lastUserTimestamp, fetchUsers]);
 
   useEffect(() => {
     fetchUsers(true); // Mostrar loading solo en la carga inicial
