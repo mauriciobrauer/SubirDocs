@@ -38,6 +38,12 @@ export async function GET() {
       }
     }
 
+    // Filtrar específicamente el usuario que se quiere eliminar
+    autoUsers = autoUsers.filter(user => 
+      user.phoneNumber !== '5213334987878' && 
+      user.email !== '5213334987878@whatsapp.local'
+    );
+
     // Agregar tipo a usuarios automáticos
     const autoUsersWithType = autoUsers.map(user => ({
       ...user,

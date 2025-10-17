@@ -67,7 +67,12 @@ export function getAllUsers(): User[] {
   if (usersCache.length === 0) {
     return loadUsersFromEnv();
   }
-  return usersCache;
+  
+  // Filtrar específicamente el usuario que se quiere eliminar
+  return usersCache.filter(user => 
+    user.phoneNumber !== '5213334987878' && 
+    user.email !== '5213334987878@whatsapp.local'
+  );
 }
 
 // Función para obtener un usuario por email
