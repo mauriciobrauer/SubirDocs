@@ -22,9 +22,17 @@ let users: Array<{
   createdAt: string;
 }> = [];
 
-// Función para guardar usuarios en archivo JSON
+// Función para guardar usuarios en archivo JSON (solo en desarrollo)
 function saveUsersToFile() {
   try {
+    // Verificar si estamos en producción
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    
+    if (isProduction) {
+      console.log(`⚠️ Modo producción: No se puede escribir al archivo users.json`);
+      return;
+    }
+    
     const usersFile = path.join(process.cwd(), 'users.json');
     fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
     console.log(`✅ Usuarios guardados en archivo: ${users.length} usuarios`);
@@ -81,8 +89,20 @@ async function createUserAutomatically(phoneNumber: string) {
 
           users.push(newUser);
           
-          // Guardar usuarios en archivo
+          // Guardar usuarios en archivo (solo en desarrollo)
           saveUsersToFile();
+
+          // En producción, también agregar al sistema de memoria
+          const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+          if (isProduction) {
+            try {
+              const { addUser } = await import('@/lib/users-production');
+              addUser(newUser);
+              console.log(`✅ Usuario agregado al sistema de memoria en producción: ${newUser.email}`);
+            } catch (memoryError) {
+              console.error('❌ Error agregando usuario a memoria en producción:', memoryError);
+            }
+          }
 
           // Notificar que se creó un usuario
           try {
