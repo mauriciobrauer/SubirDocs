@@ -38,7 +38,31 @@ export class AuthService {
     // Simular delay de red
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const user = MOCK_USERS.find(u => u.email === email && u.password === password);
+    // Buscar en usuarios hardcodeados
+    let user = MOCK_USERS.find(u => u.email === email && u.password === password);
+    
+    // Si no se encuentra, buscar en usuarios creados automáticamente
+    if (!user) {
+      try {
+        const response = await fetch('/api/users');
+        if (response.ok) {
+          const data = await response.json();
+          const autoUser = data.users.find((u: any) => u.email === email);
+          
+          // Para usuarios automáticos, la contraseña por defecto es 'password123'
+          if (autoUser && password === 'password123') {
+            user = {
+              id: autoUser.id,
+              email: autoUser.email,
+              password: 'password123',
+              name: autoUser.name
+            };
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching auto-created users:', error);
+      }
+    }
     
     if (user) {
       const { password: _, ...userWithoutPassword } = user;

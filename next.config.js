@@ -42,6 +42,16 @@ const nextConfig = {
       },
     ];
   },
+
+  // Configuración para servir archivos estáticos
+  async rewrites() {
+    return [
+      {
+        source: '/tmp-files/:path*',
+        destination: '/api/serve-file/:path*',
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

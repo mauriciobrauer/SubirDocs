@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FileText, Download, ExternalLink, RefreshCw, Calendar, HardDrive } from 'lucide-react';
 
 interface FileWithShareLink {
@@ -22,34 +22,46 @@ export default function FileList({ refreshTrigger, userEmail }: FileListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       
       const response = await fetch(`/api/files?userEmail=${encodeURIComponent(userEmail)}`);
       if (!response.ok) {
+        if (response.status === 500) {
+          // Error de Dropbox (token no configurado)
+          setFiles([]);
+          setError('');
+          return;
+        }
         throw new Error('Error al cargar los archivos');
       }
       
       const filesData = await response.json();
       setFiles(filesData);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error al cargar los archivos');
+      // Si es un error de Dropbox, no mostrar error
+      if (error instanceof Error && error.message.includes('Dropbox')) {
+        setFiles([]);
+        setError('');
+      } else {
+        setError(error instanceof Error ? error.message : 'Error al cargar los archivos');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [userEmail]);
 
   useEffect(() => {
     fetchFiles();
-  }, []);
+  }, [fetchFiles]);
 
   useEffect(() => {
     if (refreshTrigger) {
       fetchFiles();
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger, fetchFiles]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
@@ -139,10 +151,26 @@ export default function FileList({ refreshTrigger, userEmail }: FileListProps) {
 
   if (files.length === 0) {
     return (
-      <div className="text-center py-12">
-        <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No hay archivos</h3>
-        <p className="text-gray-600">Sube tu primer documento para comenzar</p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900">Archivos subidos</h2>
+          <button
+            onClick={fetchFiles}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Actualizar
+          </button>
+        </div>
+        
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No hay archivos</h3>
+          <p className="text-gray-600">Sube tu primer documento para comenzar</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Los archivos se guardarán en Dropbox cuando configures el token de acceso
+          </p>
+        </div>
       </div>
     );
   }

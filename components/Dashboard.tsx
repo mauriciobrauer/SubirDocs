@@ -5,6 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from './Header';
 import FileUpload from './FileUpload';
 import FileList from './FileList';
+import TwilioStatus from './TwilioStatus';
+import MessageLog from './MessageLog';
+import LocalFiles from './LocalFiles';
+import DropboxFiles from './DropboxFiles';
+import UsersList from './UsersList';
+import AllUsersList from './AllUsersList';
+import DebugLogs from './DebugLogs';
+import ProcessingStatus from './ProcessingStatus';
 import { UploadedFile } from '@/types';
 
 export default function Dashboard() {
@@ -20,8 +28,41 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
+      {/* Componente de estado de procesamiento en tiempo real */}
+      <ProcessingStatus />
+      
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="space-y-8">
+          {/* Sección de estado de Twilio - OCULTO TEMPORALMENTE */}
+          {/* <section>
+            <TwilioStatus />
+          </section> */}
+
+          {/* Sección de mensajes recibidos - OCULTO TEMPORALMENTE */}
+          {/* <section>
+            <MessageLog />
+          </section> */}
+
+          {/* Sección de archivos descargados - OCULTO TEMPORALMENTE */}
+          {/* <section>
+            <LocalFiles />
+          </section> */}
+
+          {/* Sección de archivos en Dropbox - OCULTO TEMPORALMENTE */}
+          {/* <section>
+            <DropboxFiles />
+          </section> */}
+
+                 {/* Sección de todos los usuarios - OCULTO TEMPORALMENTE */}
+                 {/* <section>
+                   <AllUsersList />
+                 </section> */}
+
+                 {/* Sección de logs de debug - OCULTO TEMPORALMENTE */}
+                 {/* <section>
+                   <DebugLogs isVisible={true} />
+                 </section> */}
+
           {/* Sección de subida de archivos */}
           <section>
             <div className="text-center mb-8">
@@ -39,13 +80,13 @@ export default function Dashboard() {
             />
           </section>
 
-          {/* Sección de lista de archivos */}
-          <section>
-            <FileList 
-              refreshTrigger={refreshTrigger}
-              userEmail={user?.email || 'default'} 
-            />
-          </section>
+                 {/* Sección de lista de archivos */}
+                 <section>
+                   <FileList 
+                     refreshTrigger={refreshTrigger}
+                     userEmail={user?.email || 'default'} 
+                   />
+                 </section>
         </div>
       </main>
     </div>

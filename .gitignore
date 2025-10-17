@@ -35,3 +35,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# sensitive files and logs
+webhook-*.txt
+webhook-*.log
+tmp-files/
+users.json
