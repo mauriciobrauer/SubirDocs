@@ -569,7 +569,7 @@ async function processMediaFile(mediaUrl: string, contentType: string, from: str
              console.log('📁 Parámetros:', {
                fileName: fileName,
                folder: dropboxFolderName,
-               fileSize: fileBuffer.length,
+                fileSize: fileBuffer.byteLength,
                contentType: contentType,
                hasToken: !!dropboxToken
              });
