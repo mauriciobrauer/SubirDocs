@@ -111,7 +111,7 @@ export default function TwilioStatus() {
           <ol className="text-xs text-blue-700 mt-2 space-y-1">
             <li>1. Ve a <a href="https://console.twilio.com/us1/develop/phone-numbers/manage/incoming" target="_blank" className="underline">Phone Numbers</a></li>
             <li>2. Selecciona tu número +14155238886</li>
-            <li>3. En "Webhook" configura: {webhookUrl}</li>
+            <li>3. En &quot;Webhook&quot; configura: {webhookUrl}</li>
             <li>4. Método: POST</li>
           </ol>
         </div>

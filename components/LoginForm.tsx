@@ -83,7 +83,7 @@ export default function LoginForm() {
     // Verificar nuevos usuarios cada 2 segundos (más frecuente para mejor UX)
     const interval = setInterval(checkForNewUsers, 2000);
     return () => clearInterval(interval);
-  }, [lastUserTimestamp]); // Dependencia para evitar warnings
+  }, [lastUserTimestamp, checkForNewUsers, fetchUsers]); // Dependencias completas
 
   const handleQuickLogin = async (email: string, password: string) => {
     setError('');

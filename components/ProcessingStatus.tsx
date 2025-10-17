@@ -46,7 +46,7 @@ export default function ProcessingStatus() {
     fetchStatus();
     const interval = setInterval(fetchStatus, 1000); // Verificar cada segundo
     return () => clearInterval(interval);
-  }, [isVisible]);
+  }, [isVisible, fetchStatus]);
 
 
   const getStatusIcon = () => {
