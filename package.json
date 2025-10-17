@@ -1,0 +1,31 @@
+{
+  "name": "guardar-pdf-dropbox",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@types/node": "^20.8.0",
+    "@types/node-fetch": "^2.6.13",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.0",
+    "dropbox": "^10.34.0",
+    "lucide-react": "^0.292.0",
+    "next": "15.0.0",
+    "node-fetch": "^3.3.2",
+    "postcss": "^8.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.2.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "eslint-config-next": "15.0.0"
+  }
+}
