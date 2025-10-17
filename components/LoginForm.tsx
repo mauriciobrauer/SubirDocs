@@ -114,12 +114,22 @@ export default function LoginForm() {
         // Actualizar la lista de usuarios
         await fetchUsers(false);
         
-        // Mostrar notificación de éxito con advertencia si es necesario
-        if (data.warning) {
-          alert(`Usuario ${userEmail} eliminado exitosamente.\n\n⚠️ Advertencia: ${data.warning}`);
-        } else {
-          alert(`Usuario ${userEmail} eliminado exitosamente`);
+        // Mostrar notificación de éxito con información detallada
+        let message = `Usuario ${userEmail} eliminado exitosamente.`;
+        
+        if (data.dropboxDeletion) {
+          if (data.dropboxDeletion.success) {
+            message += `\n\n✅ Dropbox: ${data.dropboxDeletion.message}`;
+          } else {
+            message += `\n\n⚠️ Dropbox: ${data.dropboxDeletion.message}`;
+          }
         }
+        
+        if (data.warning) {
+          message += `\n\n⚠️ Advertencia: ${data.warning}`;
+        }
+        
+        alert(message);
       } else {
         const errorData = await response.json();
         const errorMessage = errorData.details 

@@ -207,4 +207,151 @@ export class DropboxAPI {
         return '📁';
     }
   }
+
+  /**
+   * Elimina una carpeta completa y todos sus archivos de Dropbox
+   * @param userEmail - Email del usuario para generar la ruta de la carpeta
+   * @returns Promise<boolean> - true si se eliminó exitosamente
+   */
+  static async deleteUserFolder(userEmail: string): Promise<boolean> {
+    try {
+      // Generar la ruta de la carpeta del usuario
+      const userFolder = `/GuardaPDFDropbox/${userEmail.replace('@', '_at_').replace('.', '_')}`;
+      
+      console.log(`🗑️ Intentando eliminar carpeta de Dropbox: ${userFolder}`);
+      
+      // Primero, listar todos los archivos en la carpeta para eliminarlos
+      try {
+        const listResponse = await this.makeRequest('/files/list_folder', {
+          method: 'POST',
+          body: JSON.stringify({
+            path: userFolder,
+            recursive: true
+          })
+        });
+
+        const listResult = await listResponse.json();
+        const files = listResult.entries.filter((entry: any) => entry['.tag'] === 'file');
+        
+        console.log(`📋 Encontrados ${files.length} archivos para eliminar`);
+        
+        // Eliminar cada archivo individualmente
+        for (const file of files) {
+          try {
+            await this.makeRequest('/files/delete_v2', {
+              method: 'POST',
+              body: JSON.stringify({
+                path: file.path_lower
+              })
+            });
+            console.log(`✅ Archivo eliminado: ${file.name}`);
+          } catch (fileError: any) {
+            console.error(`❌ Error eliminando archivo ${file.name}:`, fileError.message);
+            // Continuar con los demás archivos
+          }
+        }
+      } catch (listError: any) {
+        // Si no se puede listar la carpeta, puede que no exista o ya esté vacía
+        console.log(`⚠️ No se pudo listar la carpeta (puede que no exista): ${listError.message}`);
+      }
+      
+      // Ahora eliminar la carpeta vacía
+      try {
+        await this.makeRequest('/files/delete_v2', {
+          method: 'POST',
+          body: JSON.stringify({
+            path: userFolder
+          })
+        });
+        console.log(`✅ Carpeta eliminada exitosamente: ${userFolder}`);
+        return true;
+      } catch (folderError: any) {
+        // Si la carpeta no existe, considerarlo como éxito
+        if (folderError.message.includes('not_found')) {
+          console.log(`✅ Carpeta ya no existe: ${userFolder}`);
+          return true;
+        }
+        throw folderError;
+      }
+      
+    } catch (error: any) {
+      console.error(`❌ Error eliminando carpeta de Dropbox:`, error.message);
+      throw new Error(`Error eliminando carpeta de Dropbox: ${error.message}`);
+    }
+  }
+
+  /**
+   * Verifica si una carpeta de usuario existe en Dropbox
+   * @param userEmail - Email del usuario
+   * @returns Promise<boolean> - true si la carpeta existe
+   */
+  static async userFolderExists(userEmail: string): Promise<boolean> {
+    try {
+      const userFolder = `/GuardaPDFDropbox/${userEmail.replace('@', '_at_').replace('.', '_')}`;
+      
+      await this.makeRequest('/files/get_metadata', {
+        method: 'POST',
+        body: JSON.stringify({
+          path: userFolder
+        })
+      });
+      
+      return true;
+    } catch (error: any) {
+      if (error.message.includes('not_found')) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene información sobre una carpeta de usuario (archivos, tamaño, etc.)
+   * @param userEmail - Email del usuario
+   * @returns Promise<object> - Información de la carpeta
+   */
+  static async getUserFolderInfo(userEmail: string): Promise<{
+    exists: boolean;
+    fileCount: number;
+    totalSize: number;
+    files: any[];
+  }> {
+    try {
+      const userFolder = `/GuardaPDFDropbox/${userEmail.replace('@', '_at_').replace('.', '_')}`;
+      
+      const response = await this.makeRequest('/files/list_folder', {
+        method: 'POST',
+        body: JSON.stringify({
+          path: userFolder,
+          recursive: true
+        })
+      });
+
+      const result = await response.json();
+      const files = result.entries.filter((entry: any) => entry['.tag'] === 'file');
+      const totalSize = files.reduce((sum: number, file: any) => sum + (file.size || 0), 0);
+      
+      return {
+        exists: true,
+        fileCount: files.length,
+        totalSize,
+        files: files.map((file: any) => ({
+          name: file.name,
+          size: file.size,
+          path: file.path_lower,
+          modified: file.server_modified
+        }))
+      };
+    } catch (error: any) {
+      if (error.message.includes('not_found')) {
+        return {
+          exists: false,
+          fileCount: 0,
+          totalSize: 0,
+          files: []
+        };
+      }
+      throw error;
+    }
+  }
 }

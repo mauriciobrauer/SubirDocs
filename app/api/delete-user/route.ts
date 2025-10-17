@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { deleteUser as deleteUserFromMemory, getAllUsers } from '@/lib/users-production';
+import { DropboxAPI } from '@/lib/dropbox-api';
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -23,16 +24,33 @@ export async function DELETE(request: NextRequest) {
       
       const result = deleteUserFromMemory(userId);
       
-      if (result.success) {
+      if (result.success && result.user) {
+        // Eliminar carpeta de Dropbox
+        let dropboxResult = { success: false, message: 'No se pudo eliminar carpeta de Dropbox' };
+        
+        try {
+          console.log(`🗑️ Eliminando carpeta de Dropbox para: ${result.user.email}`);
+          const dropboxDeleted = await DropboxAPI.deleteUserFolder(result.user.email);
+          
+          if (dropboxDeleted) {
+            dropboxResult = { success: true, message: 'Carpeta de Dropbox eliminada exitosamente' };
+            console.log(`✅ Carpeta de Dropbox eliminada para: ${result.user.email}`);
+          }
+        } catch (dropboxError: any) {
+          console.error(`❌ Error eliminando carpeta de Dropbox:`, dropboxError.message);
+          dropboxResult = { success: false, message: `Error eliminando carpeta de Dropbox: ${dropboxError.message}` };
+        }
+        
         return NextResponse.json({
           success: true,
           message: result.message,
           deletedUser: {
-            id: result.user?.id,
-            email: result.user?.email,
-            phoneNumber: result.user?.phoneNumber
+            id: result.user.id,
+            email: result.user.email,
+            phoneNumber: result.user.phoneNumber
           },
-          warning: 'En producción, los cambios no se persisten. El usuario se recreará en el próximo reinicio.'
+          dropboxDeletion: dropboxResult,
+          warning: 'En producción, los cambios no se persisten. El usuario se recreará en el próximo reinicio del servidor.'
         });
       } else {
         return NextResponse.json({ 
@@ -113,12 +131,28 @@ export async function DELETE(request: NextRequest) {
         
         // Eliminar la carpeta
         fs.rmdirSync(userFolder);
-        console.log(`✅ Carpeta eliminada: ${userFolder}`);
+        console.log(`✅ Carpeta local eliminada: ${userFolder}`);
       } catch (deleteError) {
-        console.error('❌ Error eliminando archivos del usuario:', deleteError);
+        console.error('❌ Error eliminando archivos locales del usuario:', deleteError);
         // No fallar la operación si no se pueden eliminar los archivos
         console.log('⚠️ Continuando sin eliminar archivos locales');
       }
+    }
+
+    // Eliminar carpeta de Dropbox
+    let dropboxResult = { success: false, message: 'No se pudo eliminar carpeta de Dropbox' };
+    
+    try {
+      console.log(`🗑️ Eliminando carpeta de Dropbox para: ${userToDelete.email}`);
+      const dropboxDeleted = await DropboxAPI.deleteUserFolder(userToDelete.email);
+      
+      if (dropboxDeleted) {
+        dropboxResult = { success: true, message: 'Carpeta de Dropbox eliminada exitosamente' };
+        console.log(`✅ Carpeta de Dropbox eliminada para: ${userToDelete.email}`);
+      }
+    } catch (dropboxError: any) {
+      console.error(`❌ Error eliminando carpeta de Dropbox:`, dropboxError.message);
+      dropboxResult = { success: false, message: `Error eliminando carpeta de Dropbox: ${dropboxError.message}` };
     }
 
     console.log(`✅ Usuario eliminado: ${userToDelete.email}`);
@@ -130,7 +164,8 @@ export async function DELETE(request: NextRequest) {
         id: userToDelete.id,
         email: userToDelete.email,
         phoneNumber: userToDelete.phoneNumber
-      }
+      },
+      dropboxDeletion: dropboxResult
     });
 
   } catch (error) {
