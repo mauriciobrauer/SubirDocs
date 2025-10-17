@@ -194,16 +194,16 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-6 sm:space-y-8">
         <div>
           <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
             <LogIn className="h-6 w-6 text-blue-600" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-4 sm:mt-6 text-center text-2xl sm:text-3xl font-extrabold text-gray-900">
             Selecciona tu Usuario
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-600 px-2">
             Elige tu cuenta para gestionar documentos
           </p>
         </div>
@@ -259,29 +259,29 @@ export default function LoginForm() {
                          type="button"
                          onClick={() => handleQuickLogin(user.email, getPasswordForUser(user))}
                          disabled={isLoading}
-                         className="w-full inline-flex justify-center items-center px-6 py-4 border border-gray-300 shadow-sm text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+                         className="w-full inline-flex justify-center items-center px-4 sm:px-6 py-3 sm:py-4 border border-gray-300 shadow-sm text-sm sm:text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
                        >
-                         <div className={`w-10 h-10 ${getAvatarColor(user)} rounded-full flex items-center justify-center mr-4`}>
-                           <span className="text-white text-lg font-bold">{getInitial(user)}</span>
+                         <div className={`w-8 h-8 sm:w-10 sm:h-10 ${getAvatarColor(user)} rounded-full flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0`}>
+                           <span className="text-white text-sm sm:text-lg font-bold">{getInitial(user)}</span>
                          </div>
-                         <div className="text-left flex-1">
+                         <div className="text-left flex-1 min-w-0">
                            <div className="flex items-center gap-2">
-                             <span className="font-semibold">{user.name}</span>
+                             <span className="font-semibold text-sm sm:text-base truncate">{user.name}</span>
                              {user.type === 'hardcoded' ? (
                                <div title="Usuario hardcodeado">
-                                 <UserCheck className="w-4 h-4 text-blue-600" />
+                                 <UserCheck className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 flex-shrink-0" />
                                </div>
                              ) : (
                                <div title="Usuario auto-creado">
-                                 <UserPlus className="w-4 h-4 text-green-600" />
+                                 <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
                                </div>
                              )}
                            </div>
-                           <div className="text-sm text-gray-500">{user.email}</div>
+                           <div className="text-xs sm:text-sm text-gray-500 truncate">{user.email}</div>
                            {user.type === 'auto-created' && (
                              <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                               <Phone className="w-3 h-3" />
-                               {user.phoneNumber}
+                               <Phone className="w-3 h-3 flex-shrink-0" />
+                               <span className="truncate">{user.phoneNumber}</span>
                              </div>
                            )}
                          </div>

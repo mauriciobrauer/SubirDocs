@@ -31,8 +31,8 @@ export default function Dashboard() {
       {/* Componente de estado de procesamiento en tiempo real */}
       <ProcessingStatus />
       
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="space-y-8">
+      <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+        <div className="space-y-6 sm:space-y-8">
           {/* Sección de estado de Twilio - OCULTO TEMPORALMENTE */}
           {/* <section>
             <TwilioStatus />
@@ -65,11 +65,11 @@ export default function Dashboard() {
 
           {/* Sección de subida de archivos */}
           <section>
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <div className="text-center mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 px-4">
                 Gestiona tus documentos
               </h1>
-              <p className="text-lg text-gray-600">
+              <p className="text-base sm:text-lg text-gray-600 px-4">
                 Sube archivos PDF y DOC a tu Dropbox de forma segura
               </p>
             </div>

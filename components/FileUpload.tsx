@@ -105,9 +105,9 @@ export default function FileUpload({ onUploadSuccess, userEmail }: FileUploadPro
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto px-4 sm:px-0">
       <div
-        className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+        className={`relative border-2 border-dashed rounded-lg p-4 sm:p-6 lg:p-8 text-center transition-colors ${
           isDragging
             ? 'border-blue-400 bg-blue-50'
             : uploadStatus === 'success'
@@ -130,43 +130,43 @@ export default function FileUpload({ onUploadSuccess, userEmail }: FileUploadPro
 
         {uploading ? (
           <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-lg font-medium text-gray-700">Subiendo archivo...</p>
-            <p className="text-sm text-gray-500">Por favor espera</p>
+            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-600 mb-3 sm:mb-4"></div>
+            <p className="text-base sm:text-lg font-medium text-gray-700">Subiendo archivo...</p>
+            <p className="text-xs sm:text-sm text-gray-500">Por favor espera</p>
           </div>
         ) : uploadStatus === 'success' ? (
           <div className="flex flex-col items-center">
-            <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
-            <p className="text-lg font-medium text-green-700">¡Archivo subido exitosamente!</p>
-            <p className="text-sm text-green-600">El archivo se ha guardado en Dropbox</p>
+            <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-green-500 mb-3 sm:mb-4" />
+            <p className="text-base sm:text-lg font-medium text-green-700">¡Archivo subido exitosamente!</p>
+            <p className="text-xs sm:text-sm text-green-600">El archivo se ha guardado en Dropbox</p>
           </div>
         ) : uploadStatus === 'error' ? (
           <div className="flex flex-col items-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-            <p className="text-lg font-medium text-red-700">Error al subir archivo</p>
-            <p className="text-sm text-red-600">{errorMessage}</p>
+            <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-red-500 mb-3 sm:mb-4" />
+            <p className="text-base sm:text-lg font-medium text-red-700">Error al subir archivo</p>
+            <p className="text-xs sm:text-sm text-red-600 px-2">{errorMessage}</p>
           </div>
         ) : (
           <div className="flex flex-col items-center">
-            <Upload className="h-12 w-12 text-gray-400 mb-4" />
-            <p className="text-lg font-medium text-gray-700 mb-2">
+            <Upload className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-3 sm:mb-4" />
+            <p className="text-base sm:text-lg font-medium text-gray-700 mb-2 px-2">
               Arrastra y suelta tu archivo aquí
             </p>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-xs sm:text-sm text-gray-500 mb-4 px-2">
               o haz clic para seleccionar un archivo
             </p>
             <button
               type="button"
               onClick={openFileDialog}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center px-3 py-2 sm:px-4 sm:py-2 border border-transparent text-xs sm:text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >
-              <FileText className="h-4 w-4 mr-2" />
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Seleccionar archivo
             </button>
           </div>
         )}
 
-        <div className="mt-4 text-xs text-gray-500">
+        <div className="mt-3 sm:mt-4 text-xs text-gray-500 px-2">
           <p>Formatos soportados: PDF, DOC, DOCX</p>
           <p>Tamaño máximo: 10MB</p>
         </div>
