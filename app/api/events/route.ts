@@ -1,14 +1,12 @@
 import { NextRequest } from 'next/server';
-
-// Store para mantener las conexiones SSE activas
-const connections = new Set<ReadableStreamDefaultController>();
+import { addConnection, removeConnection } from '@/lib/sse-manager';
 
 export async function GET(request: NextRequest) {
   // Crear un stream para Server-Sent Events
   const stream = new ReadableStream({
     start(controller) {
       // Agregar esta conexión al set de conexiones activas
-      connections.add(controller);
+      addConnection(controller);
       
       // Enviar un mensaje de conexión establecida
       const data = JSON.stringify({
@@ -21,7 +19,7 @@ export async function GET(request: NextRequest) {
       
       // Función para limpiar cuando se cierre la conexión
       const cleanup = () => {
-        connections.delete(controller);
+        removeConnection(controller);
       };
       
       // Escuchar cuando se cierre la conexión
@@ -30,7 +28,7 @@ export async function GET(request: NextRequest) {
     
     cancel() {
       // Limpiar la conexión cuando se cancele
-      connections.delete(this);
+      removeConnection(this);
     }
   });
 
@@ -43,50 +41,4 @@ export async function GET(request: NextRequest) {
       'Access-Control-Allow-Headers': 'Cache-Control',
     },
   });
-}
-
-// Función para notificar a todas las conexiones activas
-export function notifyUserCreated(userData: any) {
-  const data = JSON.stringify({
-    type: 'user_created',
-    user: userData,
-    timestamp: Date.now()
-  });
-  
-  const message = `data: ${data}\n\n`;
-  
-  // Enviar a todas las conexiones activas
-  connections.forEach(controller => {
-    try {
-      controller.enqueue(message);
-    } catch (error) {
-      // Si hay error, remover la conexión
-      connections.delete(controller);
-    }
-  });
-  
-  console.log(`📡 Notificación SSE enviada a ${connections.size} conexiones activas`);
-}
-
-// Función para notificar eliminación de usuario
-export function notifyUserDeleted(userData: any) {
-  const data = JSON.stringify({
-    type: 'user_deleted',
-    user: userData,
-    timestamp: Date.now()
-  });
-  
-  const message = `data: ${data}\n\n`;
-  
-  // Enviar a todas las conexiones activas
-  connections.forEach(controller => {
-    try {
-      controller.enqueue(message);
-    } catch (error) {
-      // Si hay error, remover la conexión
-      connections.delete(controller);
-    }
-  });
-  
-  console.log(`📡 Notificación SSE de eliminación enviada a ${connections.size} conexiones activas`);
 }

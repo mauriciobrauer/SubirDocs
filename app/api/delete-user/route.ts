@@ -171,7 +171,7 @@ export async function DELETE(request: NextRequest) {
 
     // Notificar via SSE para auto-refresh en tiempo real
     try {
-      const { notifyUserDeleted } = await import('../events/route');
+      const { notifyUserDeleted } = await import('@/lib/sse-manager');
       notifyUserDeleted({
         id: userToDelete.id,
         email: userToDelete.email,

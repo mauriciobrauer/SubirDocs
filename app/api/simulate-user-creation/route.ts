@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       console.log('✅ Notificación de usuario creado enviada:', notifyData);
       
       // Notificar via SSE para auto-refresh en tiempo real
-      const { notifyUserCreated: notifySSE } = await import('../events/route');
+      const { notifyUserCreated: notifySSE } = await import('@/lib/sse-manager');
       notifySSE({
         id: newUser.id,
         email: newUser.email,
