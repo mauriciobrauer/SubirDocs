@@ -10,7 +10,20 @@ import bcrypt from 'bcryptjs';
 // Configuración de Twilio
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = twilio(accountSid, authToken);
+
+// Inicializar cliente de Twilio solo si las credenciales están disponibles
+let client: any = null;
+if (accountSid && authToken) {
+  try {
+    client = twilio(accountSid, authToken);
+    console.log('✅ Cliente de Twilio inicializado correctamente');
+  } catch (error) {
+    console.error('❌ Error inicializando cliente de Twilio:', error);
+    client = null;
+  }
+} else {
+  console.warn('⚠️ Credenciales de Twilio no configuradas');
+}
 
 // Simulamos una base de datos en memoria para usuarios
 // En producción, esto debería ser una base de datos real
