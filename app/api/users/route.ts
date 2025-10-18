@@ -18,8 +18,8 @@ export async function GET() {
     if (isProduction) {
       // En producción, usar el sistema de memoria
       try {
-        const { getUsers } = await import('@/lib/users-production');
-        users = getUsers();
+        const { getAllUsers } = await import('@/lib/users-production');
+        users = getAllUsers();
         console.log(`✅ Usuarios obtenidos desde memoria en producción: ${users.length} usuarios`);
       } catch (memoryError) {
         console.error('❌ Error obteniendo usuarios de memoria en producción:', memoryError);
