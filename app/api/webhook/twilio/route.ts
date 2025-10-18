@@ -331,52 +331,47 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Procesar archivos en segundo plano después de responder
+    // Procesar archivos de forma síncrona
     if (numMedia > 0) {
-      writeDebugLog(`🔄 PROGRAMANDO PROCESAMIENTO EN SEGUNDO PLANO PARA ${numMedia} ARCHIVO(S)`);
-      setTimeout(async () => {
-        try {
-          writeDebugLog('🔄 INICIANDO PROCESAMIENTO EN SEGUNDO PLANO');
-          console.log('🔄 Iniciando procesamiento en segundo plano...');
-          for (let i = 0; i < numMedia; i++) {
-            const mediaUrl = formData.get(`MediaUrl${i}`) as string;
-            const contentType = formData.get(`MediaContentType${i}`) as string;
-            
-            writeDebugLog(`📁 PROCESANDO ARCHIVO ${i + 1} EN SEGUNDO PLANO`);
-            writeDebugLog(`MediaUrl: ${mediaUrl}`);
-            writeDebugLog(`ContentType: ${contentType}`);
-            
-            if (mediaUrl && contentType) {
-              console.log(`📁 Procesando archivo ${i + 1} en segundo plano...`);
-              writeDebugLog(`🔄 LLAMANDO A processMediaFile PARA ARCHIVO ${i + 1}`);
-              try {
-                const backgroundLogs: string[] = [];
-                await processMediaFile(mediaUrl, contentType, from, messageSid, backgroundLogs);
-                console.log(`✅ Archivo ${i + 1} procesado exitosamente en segundo plano`);
-                writeDebugLog(`✅ ARCHIVO ${i + 1} PROCESADO EXITOSAMENTE EN SEGUNDO PLANO`);
-                // Escribir logs del procesamiento en segundo plano
-                backgroundLogs.forEach(log => writeDebugLog(`[BACKGROUND] ${log}`));
-                writeDebugLog(`✅ ARCHIVO ${i + 1} PROCESADO EXITOSAMENTE`);
-              } catch (processError) {
-                const errorMsg = `❌ Error procesando archivo ${i + 1}: ${processError instanceof Error ? processError.message : String(processError)}`;
-                console.error(errorMsg, processError);
-                writeDebugLog(`❌ ERROR PROCESANDO ARCHIVO ${i + 1}: ${errorMsg}`);
-                writeDebugLog(`❌ Stack trace: ${processError instanceof Error ? processError.stack : 'No stack trace'}`);
-                writeDebugLog(`❌ ERROR PROCESANDO ARCHIVO ${i + 1}: ${errorMsg}`);
-              }
-            } else {
-              writeDebugLog(`⚠️ ARCHIVO ${i + 1} SIN URL O CONTENT TYPE EN SEGUNDO PLANO`);
+      writeDebugLog(`🔄 PROCESANDO ${numMedia} ARCHIVO(S) DE FORMA SÍNCRONA`);
+      try {
+        writeDebugLog('🔄 INICIANDO PROCESAMIENTO SÍNCRONO');
+        console.log('🔄 Iniciando procesamiento síncrono...');
+        for (let i = 0; i < numMedia; i++) {
+          const mediaUrl = formData.get(`MediaUrl${i}`) as string;
+          const contentType = formData.get(`MediaContentType${i}`) as string;
+          
+          writeDebugLog(`📁 PROCESANDO ARCHIVO ${i + 1} DE FORMA SÍNCRONA`);
+          writeDebugLog(`MediaUrl: ${mediaUrl}`);
+          writeDebugLog(`ContentType: ${contentType}`);
+          
+          if (mediaUrl && contentType) {
+            console.log(`📁 Procesando archivo ${i + 1} de forma síncrona...`);
+            writeDebugLog(`🔄 LLAMANDO A processMediaFile PARA ARCHIVO ${i + 1}`);
+            try {
+              const backgroundLogs: string[] = [];
+              await processMediaFile(mediaUrl, contentType, from, messageSid, backgroundLogs);
+              console.log(`✅ Archivo ${i + 1} procesado exitosamente`);
+              writeDebugLog(`✅ ARCHIVO ${i + 1} PROCESADO EXITOSAMENTE`);
+              // Escribir logs del procesamiento
+              backgroundLogs.forEach(log => writeDebugLog(`[SYNC] ${log}`));
+            } catch (processError) {
+              const errorMsg = `❌ Error procesando archivo ${i + 1}: ${processError instanceof Error ? processError.message : String(processError)}`;
+              console.error(errorMsg, processError);
+              writeDebugLog(`❌ ERROR PROCESANDO ARCHIVO ${i + 1}: ${errorMsg}`);
+              writeDebugLog(`❌ Stack trace: ${processError instanceof Error ? processError.stack : 'No stack trace'}`);
             }
+          } else {
+            writeDebugLog(`⚠️ ARCHIVO ${i + 1} SIN URL O CONTENT TYPE`);
           }
-          writeDebugLog('✅ PROCESAMIENTO EN SEGUNDO PLANO COMPLETADO');
-        } catch (error) {
-          const errorMsg = `❌ Error en procesamiento en segundo plano: ${error instanceof Error ? error.message : String(error)}`;
-          console.error(errorMsg, error);
-          writeDebugLog(`❌ ERROR EN PROCESAMIENTO EN SEGUNDO PLANO: ${errorMsg}`);
-          writeDebugLog(`❌ Stack trace: ${error instanceof Error ? error.stack : 'No stack trace'}`);
-          writeDebugLog(`❌ ERROR EN SEGUNDO PLANO: ${errorMsg}`);
         }
-      }, 100); // Esperar 100ms para asegurar que la respuesta se envíe
+        writeDebugLog('✅ PROCESAMIENTO SÍNCRONO COMPLETADO');
+      } catch (error) {
+        const errorMsg = `❌ Error en procesamiento síncrono: ${error instanceof Error ? error.message : String(error)}`;
+        console.error(errorMsg, error);
+        writeDebugLog(`❌ ERROR EN PROCESAMIENTO SÍNCRONO: ${errorMsg}`);
+        writeDebugLog(`❌ Stack trace: ${error instanceof Error ? error.stack : 'No stack trace'}`);
+      }
     }
 
     return response;
