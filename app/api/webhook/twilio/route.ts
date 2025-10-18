@@ -161,21 +161,11 @@ export async function POST(request: NextRequest) {
   console.log('🚀 WEBHOOK TWILIO INICIADO');
   logs.push('🚀 WEBHOOK TWILIO INICIADO');
   
-  // Log a archivo para debugging
-  const fs = require('fs');
-  const path = require('path');
-  const logFile = path.join(process.cwd(), 'webhook-main-log.txt');
-  const debugLogFile = path.join(process.cwd(), 'webhook-debug-detailed.txt');
-  const timestamp = new Date().toISOString();
-  
-  // Función para escribir logs detallados
+  // Función para escribir logs detallados (solo console.log en producción)
   const writeDebugLog = (message: string) => {
-    const logMessage = `[${new Date().toISOString()}] ${message}\n`;
-    fs.appendFileSync(debugLogFile, logMessage);
     console.log(`DEBUG: ${message}`);
   };
   
-  fs.appendFileSync(logFile, `[${timestamp}] WEBHOOK PRINCIPAL RECIBIDO - INICIANDO\n`);
   writeDebugLog('🚀 WEBHOOK TWILIO INICIADO - DEBUGGING ACTIVADO');
   
   try {
@@ -320,9 +310,8 @@ export async function POST(request: NextRequest) {
     logs.push('=== WEBHOOK COMPLETADO ===');
     console.log('=== WEBHOOK COMPLETADO ===');
 
-    // Log final a archivo
-    const finalTimestamp = new Date().toISOString();
-    fs.appendFileSync(logFile, `[${finalTimestamp}] WEBHOOK PRINCIPAL COMPLETADO EXITOSAMENTE\n`);
+    // Log final
+    writeDebugLog('✅ WEBHOOK PRINCIPAL COMPLETADO EXITOSAMENTE');
 
            // Responder inmediatamente a WhatsApp con logs cortos
            let responseText = '';
@@ -367,13 +356,13 @@ export async function POST(request: NextRequest) {
                 writeDebugLog(`✅ ARCHIVO ${i + 1} PROCESADO EXITOSAMENTE EN SEGUNDO PLANO`);
                 // Escribir logs del procesamiento en segundo plano
                 backgroundLogs.forEach(log => writeDebugLog(`[BACKGROUND] ${log}`));
-                fs.appendFileSync(logFile, `[${new Date().toISOString()}] ARCHIVO ${i + 1} PROCESADO EXITOSAMENTE\n`);
+                writeDebugLog(`✅ ARCHIVO ${i + 1} PROCESADO EXITOSAMENTE`);
               } catch (processError) {
                 const errorMsg = `❌ Error procesando archivo ${i + 1}: ${processError instanceof Error ? processError.message : String(processError)}`;
                 console.error(errorMsg, processError);
                 writeDebugLog(`❌ ERROR PROCESANDO ARCHIVO ${i + 1}: ${errorMsg}`);
                 writeDebugLog(`❌ Stack trace: ${processError instanceof Error ? processError.stack : 'No stack trace'}`);
-                fs.appendFileSync(logFile, `[${new Date().toISOString()}] ERROR PROCESANDO ARCHIVO ${i + 1}: ${errorMsg}\n`);
+                writeDebugLog(`❌ ERROR PROCESANDO ARCHIVO ${i + 1}: ${errorMsg}`);
               }
             } else {
               writeDebugLog(`⚠️ ARCHIVO ${i + 1} SIN URL O CONTENT TYPE EN SEGUNDO PLANO`);
@@ -385,7 +374,7 @@ export async function POST(request: NextRequest) {
           console.error(errorMsg, error);
           writeDebugLog(`❌ ERROR EN PROCESAMIENTO EN SEGUNDO PLANO: ${errorMsg}`);
           writeDebugLog(`❌ Stack trace: ${error instanceof Error ? error.stack : 'No stack trace'}`);
-          fs.appendFileSync(logFile, `[${new Date().toISOString()}] ERROR EN SEGUNDO PLANO: ${errorMsg}\n`);
+          writeDebugLog(`❌ ERROR EN SEGUNDO PLANO: ${errorMsg}`);
         }
       }, 100); // Esperar 100ms para asegurar que la respuesta se envíe
     }
@@ -410,9 +399,8 @@ export async function POST(request: NextRequest) {
       writeDebugLog(`❌ Stack trace: ${error.stack}`);
     }
     
-    // Log de error a archivo
-    const errorTimestamp = new Date().toISOString();
-    fs.appendFileSync(logFile, `[${errorTimestamp}] ERROR EN WEBHOOK PRINCIPAL: ${errorMsg}\n`);
+    // Log de error
+    writeDebugLog(`❌ ERROR EN WEBHOOK PRINCIPAL: ${errorMsg}`);
     
     const responseText = logs.join('\n');
     return new NextResponse(responseText, { 
