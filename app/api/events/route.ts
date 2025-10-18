@@ -3,8 +3,11 @@ import { addConnection, removeConnection } from '@/lib/sse-manager';
 
 export async function GET(request: NextRequest) {
   // Crear un stream para Server-Sent Events
+  let controller: ReadableStreamDefaultController;
+  
   const stream = new ReadableStream({
-    start(controller) {
+    start(ctrl) {
+      controller = ctrl;
       // Agregar esta conexión al set de conexiones activas
       addConnection(controller);
       
@@ -28,7 +31,9 @@ export async function GET(request: NextRequest) {
     
     cancel() {
       // Limpiar la conexión cuando se cancele
-      removeConnection(this);
+      if (controller) {
+        removeConnection(controller);
+      }
     }
   });
 
