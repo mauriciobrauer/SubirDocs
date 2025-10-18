@@ -1,72 +1,67 @@
 import { NextResponse } from 'next/server';
-import { Dropbox } from 'dropbox';
-
-// Configurar fetch para Node.js
-const fetch = globalThis.fetch || require('node-fetch');
+import TokenManager from '@/lib/token-manager';
 
 export async function GET() {
   try {
-    const dropboxToken = process.env.DROPBOX_ACCESS_TOKEN;
+    // Verificar configuración del TokenManager
+    const refreshToken = process.env.DROPBOX_REFRESH_TOKEN;
+    const appKey = process.env.DROPBOX_APP_KEY;
+    const appSecret = process.env.DROPBOX_APP_SECRET;
     
-    if (!dropboxToken) {
+    if (!refreshToken || !appKey || !appSecret) {
       return NextResponse.json({
         success: false,
-        error: 'DROPBOX_ACCESS_TOKEN no configurado',
-        tokenInfo: {
-          exists: false,
-          type: null,
-          startsWithSlU: false,
-          startsWithSlB: false,
-          length: 0
+        error: 'Configuración de Dropbox incompleta',
+        missingConfig: {
+          refreshToken: !refreshToken,
+          appKey: !appKey,
+          appSecret: !appSecret
         }
       });
     }
 
-    // Información del token
-    const tokenInfo = {
-      exists: true,
-      type: typeof dropboxToken,
-      startsWithSlU: dropboxToken.startsWith('sl.u.'),
-      startsWithSlB: dropboxToken.startsWith('sl.B'),
-      length: dropboxToken.length,
-      firstChars: dropboxToken.substring(0, 20) + '...',
-      isShortLived: dropboxToken.startsWith('sl.u.'),
-      isLongLived: dropboxToken.startsWith('sl.B')
-    };
-
-    // Probar el token haciendo una llamada simple
-    const dbx = new Dropbox({ 
-      accessToken: dropboxToken,
-      fetch: fetch
+    // Obtener información del TokenManager
+    const tokenInfo = TokenManager.getTokenInfo();
+    
+    // Obtener un access token válido
+    const accessToken = await TokenManager.getValidAccessToken();
+    
+    // Probar el token haciendo una llamada simple a la API
+    const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
     });
 
-    try {
-      // Intentar obtener información de la cuenta
-      const accountInfo = await dbx.usersGetCurrentAccount();
+    if (response.ok) {
+      const accountInfo = await response.json();
       
       return NextResponse.json({
         success: true,
-        message: 'Token válido y funcionando',
+        message: 'Token renovado y funcionando correctamente',
         accountInfo: {
-          accountId: accountInfo.result.account_id,
-          name: accountInfo.result.name.display_name,
-          email: accountInfo.result.email
+          accountId: accountInfo.account_id,
+          name: accountInfo.name.display_name,
+          email: accountInfo.email
         },
-        tokenInfo
+        tokenInfo: {
+          ...tokenInfo,
+          accessTokenPreview: accessToken.substring(0, 20) + '...',
+          tokenLength: accessToken.length
+        }
       });
-    } catch (error: any) {
+    } else {
+      const errorText = await response.text();
       return NextResponse.json({
         success: false,
-        error: 'Token inválido o expirado',
+        error: 'Error en la API de Dropbox',
         errorDetails: {
-          message: error.message,
-          status: error.status,
-          errorType: error.error?.error?.['.tag'] || 'unknown'
+          status: response.status,
+          statusText: response.statusText,
+          message: errorText
         },
-        tokenInfo,
-        recommendation: tokenInfo.isShortLived 
-          ? 'Tu token es de corta duración (sl.u.). Necesitas generar un token de larga duración (sl.B.) en Dropbox App Console.'
-          : 'El token puede estar expirado o ser inválido. Verifica en Dropbox App Console.'
+        tokenInfo
       });
     }
 

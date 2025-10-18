@@ -1,19 +1,22 @@
 import { NextResponse } from 'next/server';
-import { DropboxService } from '@/lib/dropbox';
+import { DropboxAPI } from '@/lib/dropbox-api';
 
 export async function GET() {
   try {
-    // Verificar si hay token de Dropbox configurado
-    const dropboxToken = process.env.DROPBOX_ACCESS_TOKEN;
-    if (!dropboxToken || dropboxToken === 'your_dropbox_token_here') {
+    // Verificar configuración de Dropbox
+    const refreshToken = process.env.DROPBOX_REFRESH_TOKEN;
+    const appKey = process.env.DROPBOX_APP_KEY;
+    const appSecret = process.env.DROPBOX_APP_SECRET;
+    
+    if (!refreshToken || !appKey || !appSecret) {
       return NextResponse.json({ 
-        error: 'Token de Dropbox no configurado',
-        message: 'Configura DROPBOX_ACCESS_TOKEN en .env.local'
+        error: 'Configuración de Dropbox incompleta',
+        message: 'Configura DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY y DROPBOX_APP_SECRET en .env.local'
       }, { status: 400 });
     }
 
-    // Obtener archivos de la carpeta whatsapp_files
-    const files = await DropboxService.getFiles('whatsapp_files');
+    // Obtener archivos de la carpeta principal de Dropbox
+    const files = await DropboxAPI.getAllFiles();
     
     // Transformar los datos para que coincidan con el formato esperado
     const transformedFiles = files.map(file => ({

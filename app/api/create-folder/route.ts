@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Dropbox } from 'dropbox';
-
-// Configurar fetch para Node.js
-const fetch = globalThis.fetch || require('node-fetch');
+import TokenManager from '@/lib/token-manager';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,47 +12,49 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const dropboxToken = process.env.DROPBOX_ACCESS_TOKEN;
+    // Obtener access token válido usando TokenManager
+    const accessToken = await TokenManager.getValidAccessToken();
     
-    if (!dropboxToken) {
-      return NextResponse.json({
-        success: false,
-        error: 'DROPBOX_ACCESS_TOKEN no configurado'
-      }, { status: 400 });
-    }
-
-    console.log('🔑 Token disponible:', !!dropboxToken);
-    console.log('🔑 Token inicio:', dropboxToken.substring(0, 15) + '...');
-    console.log('🔑 Token tipo:', dropboxToken.startsWith('sl.u.') ? 'Corta duración' : dropboxToken.startsWith('sl.B') ? 'Larga duración' : 'Desconocido');
-
-    // Crear cliente Dropbox
-    const dbx = new Dropbox({ 
-      accessToken: dropboxToken,
-      fetch: fetch
-    });
+    console.log('🔑 Token renovado exitosamente');
+    console.log('🔑 Token inicio:', accessToken.substring(0, 15) + '...');
+    console.log('🔑 Token tipo:', accessToken.startsWith('sl.u.') ? 'Corta duración' : accessToken.startsWith('sl.B') ? 'Larga duración' : 'Desconocido');
 
     console.log(`📁 Intentando crear carpeta "${folderName}" dentro de GuardaPDFDropbox...`);
 
     try {
-      // Intentar crear la carpeta dentro de GuardaPDFDropbox
-      const result = await dbx.filesCreateFolderV2({
-        path: `/GuardaPDFDropbox/${folderName}`,
-        autorename: false
+      // Crear la carpeta usando la API directa de Dropbox
+      const response = await fetch('https://api.dropboxapi.com/2/files/create_folder_v2', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          path: `/GuardaPDFDropbox/${folderName}`,
+          autorename: false
+        })
       });
 
-      console.log(`✅ Carpeta "${folderName}" creada exitosamente:`, result.result);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(JSON.stringify(errorData));
+      }
+
+      const result = await response.json();
+
+      console.log(`✅ Carpeta "${folderName}" creada exitosamente:`, result);
 
       return NextResponse.json({
         success: true,
         message: `Carpeta "${folderName}" creada exitosamente dentro de GuardaPDFDropbox`,
         folderInfo: {
-          id: result.result.metadata.id,
-          name: result.result.metadata.name,
-          path: result.result.metadata.path_lower
+          id: result.metadata.id,
+          name: result.metadata.name,
+          path: result.metadata.path_lower
         },
         tokenInfo: {
-          type: dropboxToken.startsWith('sl.u.') ? 'Corta duración (sl.u.)' : dropboxToken.startsWith('sl.B') ? 'Larga duración (sl.B.)' : 'Desconocido',
-          length: dropboxToken.length
+          type: accessToken.startsWith('sl.u.') ? 'Corta duración (sl.u.)' : accessToken.startsWith('sl.B') ? 'Larga duración (sl.B.)' : 'Desconocido',
+          length: accessToken.length
         }
       });
 
@@ -72,8 +71,8 @@ export async function POST(request: NextRequest) {
           errorSummary: error.error?.error_summary || 'No summary'
         },
         tokenInfo: {
-          type: dropboxToken.startsWith('sl.u.') ? 'Corta duración (sl.u.)' : dropboxToken.startsWith('sl.B') ? 'Larga duración (sl.B.)' : 'Desconocido',
-          length: dropboxToken.length
+          type: accessToken.startsWith('sl.u.') ? 'Corta duración (sl.u.)' : accessToken.startsWith('sl.B') ? 'Larga duración (sl.B.)' : 'Desconocido',
+          length: accessToken.length
         },
         recommendation: error.error?.error?.['.tag'] === 'invalid_access_token' 
           ? 'El token está expirado o es inválido. Necesitas generar un nuevo token de larga duración (sl.B.) en Dropbox App Console.'

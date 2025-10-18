@@ -3,7 +3,8 @@ import twilio from 'twilio';
 import fs from 'fs';
 import path from 'path';
 import { addMessage } from '@/lib/messages';
-import { DropboxService } from '@/lib/dropbox';
+import { DropboxAPI } from '@/lib/dropbox-api';
+import TokenManager from '@/lib/token-manager';
 import bcrypt from 'bcryptjs';
 
 // Configuración de Twilio
@@ -106,10 +107,22 @@ async function createUserAutomatically(phoneNumber: string) {
 
           // Notificar que se creó un usuario
           try {
-            await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/user-created`, {
-              method: 'POST'
+            const notifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/user-created`;
+            console.log(`📤 Enviando notificación a: ${notifyUrl}`);
+            
+            const notifyResponse = await fetch(notifyUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              }
             });
-            console.log('✅ Notificación de usuario creado enviada');
+            
+            if (notifyResponse.ok) {
+              const notifyData = await notifyResponse.json();
+              console.log('✅ Notificación de usuario creado enviada:', notifyData);
+            } else {
+              console.error('❌ Error en respuesta de notificación:', notifyResponse.status, notifyResponse.statusText);
+            }
           } catch (notifyError) {
             console.error('❌ Error enviando notificación de usuario creado:', notifyError);
           }
@@ -303,7 +316,7 @@ export async function POST(request: NextRequest) {
            if (numMedia > 0) {
              const phoneNumber = from.replace('whatsapp:', '').replace('+', '').replace(/\s/g, '');
              const messageSidShort = messageSid.substring(0, 8);
-             const dropboxTokenStatus = process.env.DROPBOX_ACCESS_TOKEN ? 'Configurado' : 'NO CONFIGURADO';
+             const dropboxTokenStatus = process.env.DROPBOX_REFRESH_TOKEN ? 'Configurado' : 'NO CONFIGURADO';
              responseText = `✅ PDF recibido!\n📁 Tipo: ${formData.get('MediaContentType0')}\n📱 De: ${phoneNumber}\n🆔 Msg: ${messageSidShort}\n🔄 Procesando...\n📂 Local: tmp-files/${phoneNumber}\n☁️ Dropbox: ${dropboxTokenStatus}\n👤 Usuario: ${phoneNumber}@whatsapp.local\n🔍 Debug: Ver logs en UI`;
            } else {
              responseText = `✅ Mensaje recibido: "${body}"\n📱 De: ${from}`;
@@ -560,21 +573,12 @@ async function processMediaFile(mediaUrl: string, contentType: string, from: str
            }
            
            try {
-             // Obtener token de Dropbox directamente
-             const dropboxToken = process.env.DROPBOX_ACCESS_TOKEN;
-             console.log('🔑 Token de Dropbox en webhook:', !!dropboxToken);
-             console.log('🔑 Token inicio en webhook:', dropboxToken ? dropboxToken.substring(0, 15) + '...' : 'NO TOKEN');
-             console.log('🔑 Token completo (primeros 50 chars):', dropboxToken ? dropboxToken.substring(0, 50) + '...' : 'NO TOKEN');
-             console.log('🔑 Token tipo:', typeof dropboxToken);
-             console.log('🔑 Token longitud:', dropboxToken ? dropboxToken.length : 'NO TOKEN');
-             console.log('🔑 Token empieza con sl.u:', dropboxToken ? dropboxToken.startsWith('sl.u.') : 'NO TOKEN');
-             console.log('🔑 Token empieza con sl.B:', dropboxToken ? dropboxToken.startsWith('sl.B') : 'NO TOKEN');
-             console.log('⚠️ DIAGNÓSTICO: Token sl.u. es de corta duración y puede estar expirado');
-             console.log('💡 SOLUCIÓN: Necesitas generar un token sl.B. de larga duración en Dropbox App Console');
-             
-             if (!dropboxToken) {
-               throw new Error('DROPBOX_ACCESS_TOKEN no configurado en webhook');
-             }
+             // Obtener token de Dropbox usando TokenManager
+             const dropboxToken = await TokenManager.getValidAccessToken();
+             console.log('🔑 Token renovado exitosamente en webhook');
+             console.log('🔑 Token inicio en webhook:', dropboxToken.substring(0, 15) + '...');
+             console.log('🔑 Token tipo:', dropboxToken.startsWith('sl.u.') ? 'Corta duración' : dropboxToken.startsWith('sl.B') ? 'Larga duración' : 'Desconocido');
+             console.log('✅ Token válido y renovado automáticamente');
              
              const dropboxFolderName = `/GuardaPDFDropbox/${phoneNumber}`;
              const file = new File([fileBuffer], fileName, { type: contentType });
@@ -585,22 +589,23 @@ async function processMediaFile(mediaUrl: string, contentType: string, from: str
              logMessage(`🔑 Token disponible: ${!!dropboxToken}`);
              logMessage(`🔑 Token tipo: ${dropboxToken.startsWith('sl.u.') ? 'Corta duración' : dropboxToken.startsWith('sl.B') ? 'Larga duración' : 'Desconocido'}`);
              
-             console.log('🚀 LLAMANDO A DropboxService.uploadFile...');
+             console.log('🚀 LLAMANDO A DropboxAPI.uploadFile...');
              console.log('📁 Parámetros:', {
                fileName: fileName,
                folder: dropboxFolderName,
-                fileSize: fileBuffer.byteLength,
+               fileSize: fileBuffer.byteLength,
                contentType: contentType,
                hasToken: !!dropboxToken
              });
              
-             logMessage(`🚀 LLAMANDO A DropboxService.uploadFile con parámetros:`);
+             logMessage(`🚀 LLAMANDO A DropboxAPI.uploadFile con parámetros:`);
              logMessage(`📁 Carpeta: ${dropboxFolderName}`);
               logMessage(`📄 Archivo: ${fileName} (${fileBuffer.byteLength} bytes)`);
              logMessage(`🔑 Token disponible: ${!!dropboxToken}`);
              
-             await DropboxService.uploadFile(file, dropboxFolderName, dropboxToken);
-             logMessage(`✅ Archivo ${fileName} subido exitosamente a Dropbox en carpeta: ${dropboxFolderName}`);
+             const userEmail = `${phoneNumber}@whatsapp.local`;
+             await DropboxAPI.uploadFile(file, userEmail);
+             logMessage(`✅ Archivo ${fileName} subido exitosamente a Dropbox para usuario: ${userEmail}`);
              
              // Notificar que se completó el procesamiento
              try {

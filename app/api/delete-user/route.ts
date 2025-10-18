@@ -140,22 +140,47 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Eliminar carpeta de Dropbox
+    console.log(`🗑️ === INICIANDO ELIMINACIÓN DE CARPETA DROPBOX DESDE DELETE-USER ===`);
+    console.log(`📧 Email del usuario a eliminar: ${userToDelete.email}`);
+    console.log(`📱 Número de teléfono: ${userToDelete.phoneNumber}`);
+    
     let dropboxResult = { success: false, message: 'No se pudo eliminar carpeta de Dropbox' };
     
     try {
-      console.log(`🗑️ Eliminando carpeta de Dropbox para: ${userToDelete.email}`);
+      console.log(`🗑️ Llamando a DropboxAPI.deleteUserFolder(${userToDelete.email})`);
       const dropboxDeleted = await DropboxAPI.deleteUserFolder(userToDelete.email);
+      
+      console.log(`📋 Resultado de deleteUserFolder: ${dropboxDeleted}`);
       
       if (dropboxDeleted) {
         dropboxResult = { success: true, message: 'Carpeta de Dropbox eliminada exitosamente' };
-        console.log(`✅ Carpeta de Dropbox eliminada para: ${userToDelete.email}`);
+        console.log(`✅ Carpeta de Dropbox eliminada exitosamente para: ${userToDelete.email}`);
+      } else {
+        dropboxResult = { success: false, message: 'deleteUserFolder retornó false' };
+        console.log(`❌ deleteUserFolder retornó false para: ${userToDelete.email}`);
       }
     } catch (dropboxError: any) {
-      console.error(`❌ Error eliminando carpeta de Dropbox:`, dropboxError.message);
+      console.error(`❌ === ERROR EN ELIMINACIÓN DE CARPETA DROPBOX ===`);
+      console.error(`❌ Error:`, dropboxError.message);
+      console.error(`❌ Stack trace:`, dropboxError.stack);
+      console.error(`❌ Error completo:`, JSON.stringify(dropboxError, null, 2));
       dropboxResult = { success: false, message: `Error eliminando carpeta de Dropbox: ${dropboxError.message}` };
     }
 
     console.log(`✅ Usuario eliminado: ${userToDelete.email}`);
+
+    // Notificar via SSE para auto-refresh en tiempo real
+    try {
+      const { notifyUserDeleted } = await import('../events/route');
+      notifyUserDeleted({
+        id: userToDelete.id,
+        email: userToDelete.email,
+        phoneNumber: userToDelete.phoneNumber
+      });
+      console.log('📡 Notificación SSE de eliminación enviada para auto-refresh');
+    } catch (sseError) {
+      console.error('❌ Error enviando notificación SSE:', sseError);
+    }
 
     return NextResponse.json({
       success: true,

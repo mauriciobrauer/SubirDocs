@@ -41,7 +41,12 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         isLoading: false,
       };
     case 'INIT':
-      return AuthService.getInitialAuthState();
+      // Inicializar estado por defecto, la verificación real se hace en useEffect
+      return {
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      };
     default:
       return state;
   }
@@ -55,7 +60,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    dispatch({ type: 'INIT' });
+    // Verificar si hay un usuario almacenado
+    const storedUser = AuthService.getStoredUser();
+    if (storedUser) {
+      dispatch({ type: 'LOGIN_SUCCESS', payload: storedUser });
+    } else {
+      dispatch({ type: 'LOGIN_FAILURE' });
+    }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {

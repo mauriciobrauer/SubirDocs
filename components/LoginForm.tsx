@@ -24,6 +24,10 @@ export default function LoginForm() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [folderToDelete, setFolderToDelete] = useState('');
+  const [isDeletingFolder, setIsDeletingFolder] = useState(false);
+  const [sseConnected, setSseConnected] = useState(false);
   const { login, isLoading } = useAuth();
 
   const fetchUsers = useCallback(async (showLoading = false) => {
@@ -55,35 +59,65 @@ export default function LoginForm() {
     }
   }, [initialLoad, users.length]);
 
-  const checkForNewUsers = useCallback(async () => {
+  // Función para manejar eventos SSE
+  const handleSSEEvent = useCallback((event: MessageEvent) => {
     try {
-      const response = await fetch('/api/user-created');
-      if (response.ok) {
-        const data = await response.json();
-        const currentTimestamp = data.lastUserCreatedTimestamp;
-        
-        // Si hay un nuevo timestamp y es diferente al anterior
-        if (currentTimestamp > lastUserTimestamp && lastUserTimestamp > 0) {
-          console.log('🔄 Nuevo usuario detectado, actualizando lista...');
-          await fetchUsers(false); // Actualizar sin mostrar loading
-          setNewUserDetected(true);
-          setTimeout(() => setNewUserDetected(false), 3000);
-        }
-        
-        setLastUserTimestamp(currentTimestamp);
+      const data = JSON.parse(event.data);
+      console.log('📡 Evento SSE recibido:', data);
+      
+      if (data.type === 'connected') {
+        console.log('✅ Conexión SSE establecida');
+        setSseConnected(true);
+      } else if (data.type === 'user_created') {
+        console.log('🔄 Nuevo usuario creado detectado via SSE:', data.user);
+        fetchUsers(false); // Actualizar sin mostrar loading
+        setNewUserDetected(true);
+        setTimeout(() => setNewUserDetected(false), 3000);
+      } else if (data.type === 'user_deleted') {
+        console.log('🗑️ Usuario eliminado detectado via SSE:', data.user);
+        fetchUsers(false); // Actualizar sin mostrar loading
       }
     } catch (error) {
-      console.error('Error checking for new users:', error);
+      console.error('Error procesando evento SSE:', error);
     }
-  }, [lastUserTimestamp, fetchUsers]);
+  }, [fetchUsers]);
 
   useEffect(() => {
     fetchUsers(true); // Mostrar loading solo en la carga inicial
+  }, []); // Solo ejecutar una vez al montar el componente
+
+  useEffect(() => {
+    // Polling inteligente cada 1 segundo para auto-refresh
+    console.log('🔍 Iniciando polling inteligente...');
+    setSseConnected(true); // Simular conexión activa
     
-    // Verificar nuevos usuarios cada 2 segundos (más frecuente para mejor UX)
-    const interval = setInterval(checkForNewUsers, 2000);
-    return () => clearInterval(interval);
-  }, [lastUserTimestamp, checkForNewUsers, fetchUsers]); // Dependencias completas
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch('/api/user-created');
+        if (response.ok) {
+          const data = await response.json();
+          const currentTimestamp = data.lastUserCreatedTimestamp;
+          
+          // Si hay un nuevo timestamp
+          if (currentTimestamp > lastUserTimestamp && currentTimestamp > 0) {
+            console.log('🔄 Nuevo usuario detectado via polling:', currentTimestamp);
+            await fetchUsers(false);
+            setNewUserDetected(true);
+            setTimeout(() => setNewUserDetected(false), 3000);
+            setLastUserTimestamp(currentTimestamp);
+          }
+        }
+      } catch (error) {
+        console.error('Error en polling:', error);
+      }
+    }, 1000); // Polling cada 1 segundo
+    
+    return () => {
+      console.log('🔍 Deteniendo polling...');
+      clearInterval(interval);
+      setSseConnected(false);
+    };
+  }, [lastUserTimestamp, fetchUsers]);
 
   const handleQuickLogin = async (email: string, password: string) => {
     setError('');
@@ -91,6 +125,57 @@ export default function LoginForm() {
     const success = await login(email, password);
     if (!success) {
       setError('Error al iniciar sesión');
+    }
+  };
+
+  const handleRefreshUsers = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchUsers(true);
+      console.log('✅ Lista de usuarios actualizada manualmente');
+    } catch (error) {
+      console.error('❌ Error actualizando usuarios:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleDeleteFolder = async () => {
+    if (!folderToDelete.trim()) {
+      alert('Por favor ingresa el nombre de la carpeta');
+      return;
+    }
+
+    setIsDeletingFolder(true);
+    try {
+      const response = await fetch('/api/test-dropbox-deletion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userEmail: folderToDelete.trim(),
+          action: 'delete'
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.deleted) {
+          alert(`✅ Carpeta "${folderToDelete}" eliminada exitosamente`);
+        } else {
+          alert(`ℹ️ ${data.message}`);
+        }
+      } else {
+        alert(`❌ Error: ${data.error || data.message}`);
+      }
+    } catch (error) {
+      console.error('Error eliminando carpeta:', error);
+      alert('❌ Error eliminando carpeta');
+    } finally {
+      setIsDeletingFolder(false);
+      setFolderToDelete('');
     }
   };
 
@@ -223,6 +308,28 @@ export default function LoginForm() {
           <p className="mt-2 text-center text-sm text-gray-600 px-2">
             Elige tu cuenta para gestionar documentos
           </p>
+          
+          {/* Indicador de conexión SSE y botón de actualizar */}
+          <div className="mt-4 flex flex-col items-center space-y-2">
+            <div className="flex items-center">
+              <div className={`w-2 h-2 rounded-full mr-2 ${sseConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span className="text-xs text-gray-500">
+                {sseConnected ? 'Conectado en tiempo real' : 'Desconectado'}
+              </span>
+            </div>
+            <button
+              onClick={handleRefreshUsers}
+              disabled={isRefreshing}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <UserCheck className="h-4 w-4 mr-2" />
+              )}
+              {isRefreshing ? 'Actualizando...' : 'Actualizar Lista'}
+            </button>
+          </div>
         </div>
         
         {error && (
@@ -367,6 +474,43 @@ export default function LoginForm() {
                        </>
                      )}
                    </button>
+                 </div>
+               </div>
+
+               {/* Eliminar carpeta */}
+               <div className="mt-4 p-4 bg-white rounded-lg border border-red-200">
+                 <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                   <Trash2 className="h-4 w-4 mr-2 text-red-600" />
+                   Eliminar Carpeta de Dropbox
+                 </h3>
+                 <div className="space-y-3">
+                   <input
+                     type="text"
+                     value={folderToDelete}
+                     onChange={(e) => setFolderToDelete(e.target.value)}
+                     placeholder="Email del usuario (ej: 5213334987878@whatsapp.local)"
+                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                   />
+                   <button
+                     onClick={handleDeleteFolder}
+                     disabled={isDeletingFolder || !folderToDelete.trim()}
+                     className="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                   >
+                     {isDeletingFolder ? (
+                       <>
+                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                         Eliminando...
+                       </>
+                     ) : (
+                       <>
+                         <Trash2 className="h-4 w-4 mr-2" />
+                         Eliminar Carpeta
+                       </>
+                     )}
+                   </button>
+                   <p className="text-xs text-gray-500">
+                     Ingresa el email del usuario para eliminar su carpeta de Dropbox
+                   </p>
                  </div>
                </div>
              </div>

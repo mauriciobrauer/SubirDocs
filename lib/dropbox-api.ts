@@ -1,19 +1,17 @@
 import { UploadedFile, DropboxFile } from '@/types';
-
-const ACCESS_TOKEN = typeof window === 'undefined' ? process.env.DROPBOX_ACCESS_TOKEN : null;
-
-if (!ACCESS_TOKEN && typeof window === 'undefined') {
-  throw new Error('DROPBOX_ACCESS_TOKEN is required');
-}
+import TokenManager from './token-manager';
 
 export class DropboxAPI {
   private static async makeRequest(endpoint: string, options: RequestInit = {}) {
     const url = `https://api.dropboxapi.com/2${endpoint}`;
     
+    // Obtener access token válido (se renueva automáticamente si es necesario)
+    const accessToken = await TokenManager.getValidAccessToken();
+    
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         ...options.headers,
       },
@@ -61,10 +59,11 @@ export class DropboxAPI {
     const arrayBuffer = await file.arrayBuffer();
     
     // Subir archivo usando la API de Dropbox
+    const accessToken = await TokenManager.getValidAccessToken();
     const uploadResponse = await fetch('https://content.dropboxapi.com/2/files/upload', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Dropbox-API-Arg': JSON.stringify({
           path: filePath,
           mode: 'add',
@@ -125,11 +124,61 @@ export class DropboxAPI {
     // Asegurar que la carpeta del usuario existe
     await this.createFolder(userFolder);
     
-    const response = await this.makeRequest('/files/list_folder', {
+    // Intentar buscar en la carpeta transformada primero
+    let response = await this.makeRequest('/files/list_folder', {
       method: 'POST',
       body: JSON.stringify({
         path: userFolder,
         recursive: false
+      })
+    });
+
+    let result = await response.json();
+    
+    // Si no hay archivos en la carpeta transformada, intentar en la carpeta original
+    if (result.entries.filter((entry: any) => entry['.tag'] === 'file').length === 0) {
+      // Extraer solo el número de teléfono si es un email de WhatsApp
+      const phoneNumber = userEmail.includes('@whatsapp.local') 
+        ? userEmail.split('@')[0] 
+        : userEmail;
+      
+      const originalFolder = `/GuardaPDFDropbox/${phoneNumber}`;
+      
+      try {
+        response = await this.makeRequest('/files/list_folder', {
+          method: 'POST',
+          body: JSON.stringify({
+            path: originalFolder,
+            recursive: false
+          })
+        });
+        result = await response.json();
+      } catch (error) {
+        // Si no existe la carpeta original, usar el resultado vacío de la carpeta transformada
+        console.log(`Carpeta original ${originalFolder} no existe, usando resultado vacío`);
+      }
+    }
+    
+    return result.entries
+      .filter((entry: any) => entry['.tag'] === 'file')
+      .map((file: any) => ({
+        name: file.name,
+        path_lower: file.path_lower,
+        size: file.size,
+        client_modified: file.client_modified,
+        server_modified: file.server_modified,
+      }));
+  }
+
+  static async getAllFiles(): Promise<DropboxFile[]> {
+    // Asegurar que la carpeta principal existe
+    await this.createFolder('/GuardaPDFDropbox');
+    
+    const response = await this.makeRequest('/files/list_folder', {
+      method: 'POST',
+      body: JSON.stringify({
+        path: '/GuardaPDFDropbox',
+        recursive: true
       })
     });
 
@@ -215,12 +264,19 @@ export class DropboxAPI {
    */
   static async deleteUserFolder(userEmail: string): Promise<boolean> {
     try {
-      // Generar la ruta de la carpeta del usuario
+      // Usar el mismo formato que DropboxAPI.uploadFile para consistencia
+      // Transformar el email como lo hace uploadFile: @ -> _at_, . -> _
       const userFolder = `/GuardaPDFDropbox/${userEmail.replace('@', '_at_').replace('.', '_')}`;
       
-      console.log(`🗑️ Intentando eliminar carpeta de Dropbox: ${userFolder}`);
+      console.log(`🗑️ === INICIANDO ELIMINACIÓN DE CARPETA DROPBOX ===`);
+      console.log(`📧 Email del usuario: ${userEmail}`);
+      console.log(`📁 Ruta de carpeta: ${userFolder}`);
+      const accessToken = await TokenManager.getValidAccessToken();
+      console.log(`🔑 Token disponible: ${!!accessToken}`);
+      console.log(`🔑 Token inicio: ${accessToken ? accessToken.substring(0, 20) + '...' : 'NO TOKEN'}`);
       
       // Primero, listar todos los archivos en la carpeta para eliminarlos
+      console.log(`📋 PASO 1: Listando archivos en la carpeta...`);
       try {
         const listResponse = await this.makeRequest('/files/list_folder', {
           method: 'POST',
@@ -230,23 +286,32 @@ export class DropboxAPI {
           })
         });
 
+        console.log(`📋 Respuesta de listado: ${listResponse.status} ${listResponse.statusText}`);
         const listResult = await listResponse.json();
+        console.log(`📋 Resultado del listado:`, JSON.stringify(listResult, null, 2));
+        
         const files = listResult.entries.filter((entry: any) => entry['.tag'] === 'file');
         
         console.log(`📋 Encontrados ${files.length} archivos para eliminar`);
+        files.forEach((file: any, index: number) => {
+          console.log(`📄 Archivo ${index + 1}: ${file.name} (${file.path_lower})`);
+        });
         
         // Eliminar cada archivo individualmente
+        console.log(`🗑️ PASO 2: Eliminando archivos individualmente...`);
         for (const file of files) {
           try {
-            await this.makeRequest('/files/delete_v2', {
+            console.log(`🗑️ Eliminando archivo: ${file.name} (${file.path_lower})`);
+            const deleteResponse = await this.makeRequest('/files/delete_v2', {
               method: 'POST',
               body: JSON.stringify({
                 path: file.path_lower
               })
             });
-            console.log(`✅ Archivo eliminado: ${file.name}`);
+            console.log(`✅ Archivo eliminado exitosamente: ${file.name}`);
           } catch (fileError: any) {
             console.error(`❌ Error eliminando archivo ${file.name}:`, fileError.message);
+            console.error(`❌ Detalles del error:`, JSON.stringify(fileError, null, 2));
             // Continuar con los demás archivos
           }
         }
@@ -256,16 +321,22 @@ export class DropboxAPI {
       }
       
       // Ahora eliminar la carpeta vacía
+      console.log(`🗑️ PASO 3: Eliminando carpeta vacía...`);
       try {
-        await this.makeRequest('/files/delete_v2', {
+        console.log(`🗑️ Eliminando carpeta: ${userFolder}`);
+        const folderDeleteResponse = await this.makeRequest('/files/delete_v2', {
           method: 'POST',
           body: JSON.stringify({
             path: userFolder
           })
         });
+        console.log(`✅ Respuesta de eliminación de carpeta: ${folderDeleteResponse.status} ${folderDeleteResponse.statusText}`);
         console.log(`✅ Carpeta eliminada exitosamente: ${userFolder}`);
         return true;
       } catch (folderError: any) {
+        console.error(`❌ Error eliminando carpeta:`, folderError.message);
+        console.error(`❌ Detalles del error:`, JSON.stringify(folderError, null, 2));
+        
         // Si la carpeta no existe, considerarlo como éxito
         if (folderError.message.includes('not_found')) {
           console.log(`✅ Carpeta ya no existe: ${userFolder}`);
@@ -275,7 +346,10 @@ export class DropboxAPI {
       }
       
     } catch (error: any) {
-      console.error(`❌ Error eliminando carpeta de Dropbox:`, error.message);
+      console.error(`❌ === ERROR GENERAL EN ELIMINACIÓN DE CARPETA ===`);
+      console.error(`❌ Error:`, error.message);
+      console.error(`❌ Stack trace:`, error.stack);
+      console.error(`❌ Error completo:`, JSON.stringify(error, null, 2));
       throw new Error(`Error eliminando carpeta de Dropbox: ${error.message}`);
     }
   }
