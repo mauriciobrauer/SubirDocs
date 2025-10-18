@@ -331,45 +331,46 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Procesar archivos de forma síncrona
+    // Procesar archivos de forma síncrona (simplificado para Vercel)
     if (numMedia > 0) {
       writeDebugLog(`🔄 PROCESANDO ${numMedia} ARCHIVO(S) DE FORMA SÍNCRONA`);
       try {
-        writeDebugLog('🔄 INICIANDO PROCESAMIENTO SÍNCRONO');
-        console.log('🔄 Iniciando procesamiento síncrono...');
-        for (let i = 0; i < numMedia; i++) {
-          const mediaUrl = formData.get(`MediaUrl${i}`) as string;
-          const contentType = formData.get(`MediaContentType${i}`) as string;
-          
-          writeDebugLog(`📁 PROCESANDO ARCHIVO ${i + 1} DE FORMA SÍNCRONA`);
-          writeDebugLog(`MediaUrl: ${mediaUrl}`);
-          writeDebugLog(`ContentType: ${contentType}`);
-          
-          if (mediaUrl && contentType) {
-            console.log(`📁 Procesando archivo ${i + 1} de forma síncrona...`);
-            writeDebugLog(`🔄 LLAMANDO A processMediaFile PARA ARCHIVO ${i + 1}`);
-            try {
-              const backgroundLogs: string[] = [];
-              await processMediaFile(mediaUrl, contentType, from, messageSid, backgroundLogs);
-              console.log(`✅ Archivo ${i + 1} procesado exitosamente`);
-              writeDebugLog(`✅ ARCHIVO ${i + 1} PROCESADO EXITOSAMENTE`);
-              // Escribir logs del procesamiento
-              backgroundLogs.forEach(log => writeDebugLog(`[SYNC] ${log}`));
-            } catch (processError) {
-              const errorMsg = `❌ Error procesando archivo ${i + 1}: ${processError instanceof Error ? processError.message : String(processError)}`;
-              console.error(errorMsg, processError);
-              writeDebugLog(`❌ ERROR PROCESANDO ARCHIVO ${i + 1}: ${errorMsg}`);
-              writeDebugLog(`❌ Stack trace: ${processError instanceof Error ? processError.stack : 'No stack trace'}`);
-            }
-          } else {
-            writeDebugLog(`⚠️ ARCHIVO ${i + 1} SIN URL O CONTENT TYPE`);
+        writeDebugLog('🔄 INICIANDO PROCESAMIENTO SÍNCRONO SIMPLIFICADO');
+        console.log('🔄 Iniciando procesamiento síncrono simplificado...');
+        
+        // Solo procesar el primer archivo para evitar timeouts
+        const mediaUrl = formData.get(`MediaUrl0`) as string;
+        const contentType = formData.get(`MediaContentType0`) as string;
+        
+        writeDebugLog(`📁 PROCESANDO ARCHIVO PRINCIPAL`);
+        writeDebugLog(`MediaUrl: ${mediaUrl}`);
+        writeDebugLog(`ContentType: ${contentType}`);
+        
+        if (mediaUrl && contentType) {
+          console.log(`📁 Procesando archivo principal...`);
+          writeDebugLog(`🔄 LLAMANDO A processMediaFile PARA ARCHIVO PRINCIPAL`);
+          try {
+            const backgroundLogs: string[] = [];
+            await processMediaFile(mediaUrl, contentType, from, messageSid, backgroundLogs);
+            console.log(`✅ Archivo principal procesado exitosamente`);
+            writeDebugLog(`✅ ARCHIVO PRINCIPAL PROCESADO EXITOSAMENTE`);
+            // Escribir logs del procesamiento
+            backgroundLogs.forEach(log => writeDebugLog(`[SYNC] ${log}`));
+          } catch (processError) {
+            const errorMsg = `❌ Error procesando archivo principal: ${processError instanceof Error ? processError.message : String(processError)}`;
+            console.error(errorMsg, processError);
+            writeDebugLog(`❌ ERROR PROCESANDO ARCHIVO PRINCIPAL: ${errorMsg}`);
+            writeDebugLog(`❌ Stack trace: ${processError instanceof Error ? processError.stack : 'No stack trace'}`);
           }
+        } else {
+          writeDebugLog(`⚠️ ARCHIVO PRINCIPAL SIN URL O CONTENT TYPE`);
         }
-        writeDebugLog('✅ PROCESAMIENTO SÍNCRONO COMPLETADO');
+        
+        writeDebugLog('✅ PROCESAMIENTO SÍNCRONO SIMPLIFICADO COMPLETADO');
       } catch (error) {
-        const errorMsg = `❌ Error en procesamiento síncrono: ${error instanceof Error ? error.message : String(error)}`;
+        const errorMsg = `❌ Error en procesamiento síncrono simplificado: ${error instanceof Error ? error.message : String(error)}`;
         console.error(errorMsg, error);
-        writeDebugLog(`❌ ERROR EN PROCESAMIENTO SÍNCRONO: ${errorMsg}`);
+        writeDebugLog(`❌ ERROR EN PROCESAMIENTO SÍNCRONO SIMPLIFICADO: ${errorMsg}`);
         writeDebugLog(`❌ Stack trace: ${error instanceof Error ? error.stack : 'No stack trace'}`);
       }
     }
@@ -461,30 +462,14 @@ async function processMediaFile(mediaUrl: string, contentType: string, from: str
     const fileName = `mensaje_${messageSid}_${Date.now()}${extension}`;
     logMessage(`Nombre de archivo generado: ${fileName}`);
     
-    // Crear carpeta por número de teléfono del remitente
+    // En Vercel, no podemos escribir archivos al sistema de archivos
+    // Solo procesamos el archivo para subirlo a Dropbox
     const phoneNumber = from.replace('whatsapp:', '').replace('+', '').replace(/\s/g, '');
-    const folderPath = path.join(process.cwd(), 'tmp-files', phoneNumber);
-    const filePath = path.join(folderPath, fileName);
     
-    logMessage(`Carpeta de destino: ${folderPath}`);
-    logMessage(`Ruta completa del archivo: ${filePath}`);
-    
-    // Crear la carpeta si no existe
-    if (!fs.existsSync(folderPath)) {
-      fs.mkdirSync(folderPath, { recursive: true });
-      logMessage(`✅ Carpeta creada: ${folderPath}`);
-    }
-    
-    // Guardar el archivo localmente
-    logMessage('Guardando archivo localmente...');
-    fs.writeFileSync(filePath, Buffer.from(fileBuffer));
-    
-    logMessage(`✅ Archivo ${fileName} guardado exitosamente en: ${filePath}`);
-    
-    // Mostrar información del archivo guardado
-    const stats = fs.statSync(filePath);
-    logMessage(`📁 Tamaño del archivo: ${stats.size} bytes`);
-    logMessage(`📅 Fecha de creación: ${stats.birthtime}`);
+    logMessage(`📱 Número de teléfono: ${phoneNumber}`);
+    logMessage(`📄 Nombre del archivo: ${fileName}`);
+    logMessage(`📁 Tamaño del archivo: ${fileBuffer.byteLength} bytes`);
+    logMessage(`📅 Fecha de procesamiento: ${new Date().toISOString()}`);
     
            // Crear usuario automáticamente si no existe
            logMessage('Creando usuario automáticamente...');
