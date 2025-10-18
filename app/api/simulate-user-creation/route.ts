@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Notificar que se creó un usuario
     try {
       // Llamar directamente al endpoint de notificación
-      const { POST: notifyUserCreated } = await import('../user-created/route');
+      const { POST: notifyUserCreatedHandler } = await import('../user-created/route');
       const notifyRequest = new Request('http://localhost:3000/api/user-created', {
         method: 'POST',
         headers: {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         }
       });
       
-      const notifyResponse = await notifyUserCreated(notifyRequest);
+      const notifyResponse = await notifyUserCreatedHandler(notifyRequest);
       const notifyData = await notifyResponse.json();
       
       console.log('✅ Notificación de usuario creado enviada:', notifyData);
