@@ -84,27 +84,61 @@ async function createUserAutomatically(phoneNumber: string) {
     // Verificar si estamos en producción
     const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     
-    let existingUser = null;
-    
-    if (isProduction) {
-      // En producción, verificar en el sistema de memoria
-      try {
-        const { getUserByEmail } = await import('@/lib/users-production');
-        existingUser = getUserByEmail(email);
-      } catch (memoryError) {
-        console.error('❌ Error verificando usuario en memoria:', memoryError);
+    // Intentar usar Firebase primero (si está disponible)
+    try {
+      const { getFirebaseUser, createFirebaseUser } = await import('@/lib/firebase-users');
+      
+      // Verificar si el usuario ya existe en Firebase
+      const existingFirebaseUser = await getFirebaseUser(cleanPhoneNumber);
+      if (existingFirebaseUser) {
+        console.log(`✅ Usuario ya existe en Firebase: ${existingFirebaseUser.email}`);
+        return {
+          id: existingFirebaseUser.uid,
+          email: existingFirebaseUser.email,
+          name: existingFirebaseUser.displayName || cleanPhoneNumber,
+          phoneNumber: cleanPhoneNumber,
+          createdAt: existingFirebaseUser.metadata.creationTime
+        };
       }
-    } else {
-      // En desarrollo, verificar en el array local
-      existingUser = users.find(user => user.email === email);
-    }
-    
+      
+      // Crear nuevo usuario en Firebase
+      const firebaseUser = await createFirebaseUser(email, cleanPhoneNumber, cleanPhoneNumber);
+      console.log(`✅ Usuario creado en Firebase: ${firebaseUser.uid}`);
+      
+      return {
+        id: firebaseUser.uid,
+        email: firebaseUser.email || email,
+        name: firebaseUser.displayName || cleanPhoneNumber,
+        phoneNumber: cleanPhoneNumber,
+        createdAt: firebaseUser.metadata.creationTime
+      };
+      
+    } catch (firebaseError) {
+      console.log('⚠️ Firebase no disponible, usando sistema de memoria local');
+      console.log(`⚠️ Error Firebase: ${firebaseError instanceof Error ? firebaseError.message : String(firebaseError)}`);
+      
+      // Fallback al sistema anterior si Firebase no está disponible
+      let existingUser = null;
+      
+      if (isProduction) {
+        // En producción, verificar en el sistema de memoria
+        try {
+          const { getUserByEmail } = await import('@/lib/users-production');
+          existingUser = getUserByEmail(email);
+        } catch (memoryError) {
+          console.error('❌ Error verificando usuario en memoria:', memoryError);
+        }
+      } else {
+        // En desarrollo, verificar en el array local
+        existingUser = users.find(user => user.email === email);
+      }
+      
     if (existingUser) {
-      console.log(`✅ Usuario ya existe: ${existingUser.email}`);
+        console.log(`✅ Usuario ya existe en sistema local: ${existingUser.email}`);
       return existingUser;
     }
 
-    // Crear nuevo usuario
+      // Crear nuevo usuario en sistema local
     const userId = `user_${Date.now()}`;
     const hashedPassword = await bcrypt.hash('password123', 10); // Contraseña por defecto
     
@@ -117,21 +151,24 @@ async function createUserAutomatically(phoneNumber: string) {
       createdAt: new Date().toISOString()
     };
 
-    if (isProduction) {
-      // En producción, solo usar el sistema de memoria
-      try {
-        const { addUser } = await import('@/lib/users-production');
-        addUser(newUser);
-        console.log(`✅ Usuario agregado al sistema de memoria en producción: ${newUser.email}`);
-      } catch (memoryError) {
-        console.error('❌ Error agregando usuario a memoria en producción:', memoryError);
-        throw memoryError;
+          if (isProduction) {
+        // En producción, solo usar el sistema de memoria
+            try {
+              const { addUser } = await import('@/lib/users-production');
+              addUser(newUser);
+              console.log(`✅ Usuario agregado al sistema de memoria en producción: ${newUser.email}`);
+            } catch (memoryError) {
+              console.error('❌ Error agregando usuario a memoria en producción:', memoryError);
+          throw memoryError;
+        }
+      } else {
+        // En desarrollo, usar el array local y guardar en archivo
+        users.push(newUser);
+        saveUsersToFile();
       }
-    } else {
-      // En desarrollo, usar el array local y guardar en archivo
-      users.push(newUser);
-      saveUsersToFile();
-    }
+      
+      return newUser;
+          }
 
           // Notificar que se creó un usuario
           try {
@@ -355,36 +392,36 @@ export async function POST(request: NextRequest) {
         const contentType = formData.get(`MediaContentType0`) as string;
         
         writeDebugLog(`📁 PROCESANDO ARCHIVO PRINCIPAL`);
-        writeDebugLog(`MediaUrl: ${mediaUrl}`);
-        writeDebugLog(`ContentType: ${contentType}`);
-        
-        if (mediaUrl && contentType) {
+            writeDebugLog(`MediaUrl: ${mediaUrl}`);
+            writeDebugLog(`ContentType: ${contentType}`);
+            
+            if (mediaUrl && contentType) {
           console.log(`📁 Procesando archivo principal...`);
           writeDebugLog(`🔄 LLAMANDO A processMediaFile PARA ARCHIVO PRINCIPAL`);
-          try {
-            const backgroundLogs: string[] = [];
-            await processMediaFile(mediaUrl, contentType, from, messageSid, backgroundLogs);
+              try {
+                const backgroundLogs: string[] = [];
+                await processMediaFile(mediaUrl, contentType, from, messageSid, backgroundLogs);
             console.log(`✅ Archivo principal procesado exitosamente`);
             writeDebugLog(`✅ ARCHIVO PRINCIPAL PROCESADO EXITOSAMENTE`);
             // Escribir logs del procesamiento
             backgroundLogs.forEach(log => writeDebugLog(`[SYNC] ${log}`));
-          } catch (processError) {
+              } catch (processError) {
             const errorMsg = `❌ Error procesando archivo principal: ${processError instanceof Error ? processError.message : String(processError)}`;
-            console.error(errorMsg, processError);
+                console.error(errorMsg, processError);
             writeDebugLog(`❌ ERROR PROCESANDO ARCHIVO PRINCIPAL: ${errorMsg}`);
-            writeDebugLog(`❌ Stack trace: ${processError instanceof Error ? processError.stack : 'No stack trace'}`);
-          }
-        } else {
+                writeDebugLog(`❌ Stack trace: ${processError instanceof Error ? processError.stack : 'No stack trace'}`);
+              }
+            } else {
           writeDebugLog(`⚠️ ARCHIVO PRINCIPAL SIN URL O CONTENT TYPE`);
-        }
+            }
         
         writeDebugLog('✅ PROCESAMIENTO SÍNCRONO SIMPLIFICADO COMPLETADO');
-      } catch (error) {
+        } catch (error) {
         const errorMsg = `❌ Error en procesamiento síncrono simplificado: ${error instanceof Error ? error.message : String(error)}`;
-        console.error(errorMsg, error);
+          console.error(errorMsg, error);
         writeDebugLog(`❌ ERROR EN PROCESAMIENTO SÍNCRONO SIMPLIFICADO: ${errorMsg}`);
-        writeDebugLog(`❌ Stack trace: ${error instanceof Error ? error.stack : 'No stack trace'}`);
-      }
+          writeDebugLog(`❌ Stack trace: ${error instanceof Error ? error.stack : 'No stack trace'}`);
+        }
     }
 
     return response;
@@ -586,7 +623,7 @@ async function processMediaFile(mediaUrl: string, contentType: string, from: str
              console.log('📁 Parámetros:', {
                fileName: fileName,
                folder: dropboxFolderName,
-               fileSize: fileBuffer.byteLength,
+                fileSize: fileBuffer.byteLength,
                contentType: contentType,
                hasToken: !!dropboxToken
              });

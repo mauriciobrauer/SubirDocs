@@ -41,3 +41,6 @@ webhook-*.txt
 webhook-*.log
 tmp-files/
 users.json
+
+# Firebase credentials
+firebase-service-account.json

@@ -1,45 +1,53 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
 export async function GET() {
   try {
-    let users: Array<{
-      id: string;
-      email: string;
-      name: string;
-      phoneNumber?: string;
-      createdAt: string;
-    }> = [];
-
-    // Verificar si estamos en producción
-    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
-    
-    if (isProduction) {
-      // En producción, usar el sistema de memoria
-      try {
-        const { getAllUsers } = await import('@/lib/users-production');
-        users = getAllUsers();
-        console.log(`✅ Usuarios obtenidos desde memoria en producción: ${users.length} usuarios`);
-      } catch (memoryError) {
-        console.error('❌ Error obteniendo usuarios de memoria en producción:', memoryError);
-        users = [];
-      }
-    } else {
-      // En desarrollo, leer desde archivo JSON
-      const usersFile = path.join(process.cwd(), 'users.json');
-      if (fs.existsSync(usersFile)) {
-        const data = fs.readFileSync(usersFile, 'utf-8');
-        users = JSON.parse(data);
-        console.log(`✅ Usuarios obtenidos desde archivo en desarrollo: ${users.length} usuarios`);
-      }
+    // Intentar usar Firebase primero (si está disponible)
+    try {
+      const { getAllFirebaseUsers } = await import('@/lib/firebase-users');
+      
+      const firebaseUsers = await getAllFirebaseUsers();
+      console.log(`✅ Usuarios obtenidos desde Firebase: ${firebaseUsers.length} usuarios`);
+      
+      // Transformar usuarios de Firebase al formato esperado
+      const users = firebaseUsers.map(user => ({
+        id: user.uid,
+        email: user.email,
+        name: user.displayName || user.email.split('@')[0],
+        phoneNumber: user.phoneNumber?.replace('+', '') || user.uid,
+        createdAt: user.metadata.creationTime
+      }));
+      
+      return NextResponse.json({
+        success: true,
+        users,
+        count: users.length,
+        source: 'Firebase'
+      });
+      
+    } catch (firebaseError) {
+      console.log('⚠️ Firebase no disponible, usando sistema local');
+      console.log(`⚠️ Error Firebase: ${firebaseError instanceof Error ? firebaseError.message : String(firebaseError)}`);
+      
+      // Fallback al sistema anterior si Firebase no está disponible
+      const { getAllUsers } = await import('@/lib/users-production');
+      const users = getAllUsers();
+      
+      console.log(`✅ Usuarios obtenidos desde sistema local: ${users.length} usuarios`);
+      
+      return NextResponse.json({
+        success: true,
+        users: users.map(user => ({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          phoneNumber: user.phoneNumber,
+          createdAt: user.createdAt
+        })),
+        count: users.length,
+        source: 'Local Memory'
+      });
     }
-    
-    return NextResponse.json({
-      success: true,
-      users,
-      count: users.length
-    });
 
   } catch (error) {
     console.error('Error obteniendo usuarios:', error);
