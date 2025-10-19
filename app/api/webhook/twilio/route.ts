@@ -197,10 +197,10 @@ async function createUserAutomatically(phoneNumber: string) {
       });
 
       return newUser;
-  } catch (error) {
-    console.error('❌ Error creando usuario:', error);
-    throw error;
-  }
+    } catch (error) {
+      console.error('❌ Error creando usuario:', error);
+      throw error;
+    }
 }
 
 export async function POST(request: NextRequest) {
