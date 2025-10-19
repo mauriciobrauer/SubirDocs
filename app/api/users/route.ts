@@ -40,6 +40,16 @@ export async function GET() {
         console.log(`❌ Stack trace: ${firebaseError.stack}`);
       }
       
+      // Devolver información detallada del error
+      return NextResponse.json({
+        success: false,
+        error: 'Firebase no disponible',
+        firebaseError: firebaseError instanceof Error ? firebaseError.message : String(firebaseError),
+        firebaseStack: firebaseError instanceof Error ? firebaseError.stack : undefined,
+        hasServiceAccountKey: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
+        serviceAccountKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? process.env.FIREBASE_SERVICE_ACCOUNT_KEY.length : 0
+      }, { status: 500 });
+      
       // Fallback al sistema anterior si Firebase no está disponible
       const { getAllUsers } = await import('@/lib/users-production');
       const users = getAllUsers();
