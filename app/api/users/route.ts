@@ -2,10 +2,16 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
+    console.log('🔥 === DIAGNÓSTICO FIREBASE EN /api/users ===');
+    console.log(`🔑 FIREBASE_SERVICE_ACCOUNT_KEY presente: ${!!process.env.FIREBASE_SERVICE_ACCOUNT_KEY}`);
+    
     // Intentar usar Firebase primero (si está disponible)
     try {
+      console.log('🔄 Importando Firebase users module...');
       const { getAllFirebaseUsers } = await import('@/lib/firebase-users');
+      console.log('✅ Firebase users module importado correctamente');
       
+      console.log('🔄 Obteniendo usuarios de Firebase...');
       const firebaseUsers = await getAllFirebaseUsers();
       console.log(`✅ Usuarios obtenidos desde Firebase: ${firebaseUsers.length} usuarios`);
       
@@ -22,12 +28,17 @@ export async function GET() {
         success: true,
         users,
         count: users.length,
-        source: 'Firebase'
+        source: 'Firebase',
+        firebaseWorking: true
       });
       
     } catch (firebaseError) {
-      console.log('⚠️ Firebase no disponible, usando sistema local');
-      console.log(`⚠️ Error Firebase: ${firebaseError instanceof Error ? firebaseError.message : String(firebaseError)}`);
+      console.log('❌ === ERROR EN FIREBASE ===');
+      console.log(`❌ Firebase no disponible, usando sistema local`);
+      console.log(`❌ Error Firebase: ${firebaseError instanceof Error ? firebaseError.message : String(firebaseError)}`);
+      if (firebaseError instanceof Error) {
+        console.log(`❌ Stack trace: ${firebaseError.stack}`);
+      }
       
       // Fallback al sistema anterior si Firebase no está disponible
       const { getAllUsers } = await import('@/lib/users-production');
@@ -45,7 +56,9 @@ export async function GET() {
           createdAt: user.createdAt
         })),
         count: users.length,
-        source: 'Local Memory'
+        source: 'Local Memory',
+        firebaseWorking: false,
+        firebaseError: firebaseError instanceof Error ? firebaseError.message : String(firebaseError)
       });
     }
 
