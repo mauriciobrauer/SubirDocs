@@ -167,39 +167,36 @@ async function createUserAutomatically(phoneNumber: string) {
         saveUsersToFile();
       }
       
+      // Notificar que se creó un usuario
+      try {
+        const notifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/user-created`;
+        console.log(`📤 Enviando notificación a: ${notifyUrl}`);
+        
+        const notifyResponse = await fetch(notifyUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (notifyResponse.ok) {
+          const notifyData = await notifyResponse.json();
+          console.log('✅ Notificación de usuario creado enviada:', notifyData);
+        } else {
+          console.error('❌ Error en respuesta de notificación:', notifyResponse.status, notifyResponse.statusText);
+        }
+      } catch (notifyError) {
+        console.error('❌ Error enviando notificación de usuario creado:', notifyError);
+      }
+
+      console.log(`✅ Usuario creado automáticamente:`, {
+        id: newUser.id,
+        email: newUser.email,
+        name: newUser.name,
+        phoneNumber: newUser.phoneNumber
+      });
+
       return newUser;
-          }
-
-          // Notificar que se creó un usuario
-          try {
-            const notifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/user-created`;
-            console.log(`📤 Enviando notificación a: ${notifyUrl}`);
-            
-            const notifyResponse = await fetch(notifyUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            if (notifyResponse.ok) {
-              const notifyData = await notifyResponse.json();
-              console.log('✅ Notificación de usuario creado enviada:', notifyData);
-            } else {
-              console.error('❌ Error en respuesta de notificación:', notifyResponse.status, notifyResponse.statusText);
-            }
-          } catch (notifyError) {
-            console.error('❌ Error enviando notificación de usuario creado:', notifyError);
-          }
-
-          console.log(`✅ Usuario creado automáticamente:`, {
-            id: newUser.id,
-            email: newUser.email,
-            name: newUser.name,
-            phoneNumber: newUser.phoneNumber
-          });
-
-          return newUser;
   } catch (error) {
     console.error('❌ Error creando usuario:', error);
     throw error;
