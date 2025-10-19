@@ -27,18 +27,12 @@ function initializeFirebaseAdmin() {
     try {
       let serviceAccount;
       
-      // Primero intentar desde archivo JSON
-      try {
-        serviceAccount = require('../firebase-service-account.json');
-        console.log('✅ Usando credenciales de servicio desde archivo JSON');
-      } catch (fileError) {
-        // Si no hay archivo, intentar desde variables de entorno
-        if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-          serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-          console.log('✅ Usando credenciales de servicio desde variables de entorno');
-        } else {
-          throw new Error('No se encontraron credenciales de servicio');
-        }
+      // Usar solo variables de entorno en producción
+      if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+        console.log('✅ Usando credenciales de servicio desde variables de entorno');
+      } else {
+        throw new Error('No se encontraron credenciales de servicio');
       }
       
       app = initializeApp({

@@ -48,7 +48,7 @@ export async function GET() {
         debugLogs: debugLogs
       });
       
-    } catch (firebaseError) {
+    } catch (firebaseError: any) {
       debugLogs.push('❌ === ERROR EN FIREBASE ===');
       debugLogs.push(`❌ Firebase no disponible, usando sistema local`);
       debugLogs.push(`❌ Error Firebase: ${firebaseError instanceof Error ? firebaseError.message : String(firebaseError)}`);
