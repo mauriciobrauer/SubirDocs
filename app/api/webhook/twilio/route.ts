@@ -187,10 +187,8 @@ export async function POST(request: NextRequest) {
           // Subir a Dropbox usando el TokenManager
           console.log(`☁️ Subiendo archivo a Dropbox...`);
           const uploadResult = await DropboxAPI.uploadFile(
-            Buffer.from(fileBuffer),
-            fileName,
-            user.email, // Usar el email completo para consistencia en nombres de carpeta
-            mediaContentType
+            new File([Buffer.from(fileBuffer)], fileName, { type: mediaContentType }),
+            user.email // Usar el email completo para consistencia en nombres de carpeta
           );
 
           if (uploadResult.success) {
