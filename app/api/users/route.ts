@@ -28,6 +28,30 @@ export async function GET() {
       const firebaseUsers = await getAllFirebaseUsers();
       debugLogs.push(`✅ Usuarios obtenidos desde Firebase: ${firebaseUsers.length} usuarios`);
       
+      // Test: Intentar crear un usuario de prueba
+      debugLogs.push('🔄 === TEST: CREANDO USUARIO DE PRUEBA ===');
+      const testPhoneNumber = '5219998887777';
+      const testEmail = `${testPhoneNumber}@whatsapp.local`;
+      
+      try {
+        const { getFirebaseUser, createFirebaseUser } = await import('@/lib/firebase-users');
+        
+        // Verificar si ya existe
+        const existingTestUser = await getFirebaseUser(testPhoneNumber);
+        if (existingTestUser) {
+          debugLogs.push(`✅ Usuario de prueba ya existe: ${existingTestUser.email}`);
+        } else {
+          // Crear nuevo usuario
+          const newTestUser = await createFirebaseUser(testEmail, testPhoneNumber, testPhoneNumber);
+          debugLogs.push(`✅ Usuario de prueba creado: ${newTestUser.uid}`);
+          debugLogs.push(`📧 Email: ${newTestUser.email}`);
+          debugLogs.push(`📱 Display Name: ${newTestUser.displayName}`);
+        }
+      } catch (testError: any) {
+        debugLogs.push(`❌ Error en test de creación de usuario: ${testError.message}`);
+        debugLogs.push(`📋 Stack: ${testError.stack}`);
+      }
+      
       // Transformar usuarios de Firebase al formato esperado
       const users = firebaseUsers.map(user => ({
         id: user.uid,
