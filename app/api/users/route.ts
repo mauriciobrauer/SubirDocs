@@ -69,7 +69,8 @@ export async function GET() {
         firebaseWorking: true,
         hasServiceAccountKey: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
         serviceAccountKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? process.env.FIREBASE_SERVICE_ACCOUNT_KEY.length : 0,
-        debugLogs: debugLogs
+        debugLogs: debugLogs,
+        message: 'Firebase está funcionando correctamente'
       });
       
     } catch (firebaseError: any) {
