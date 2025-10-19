@@ -133,10 +133,10 @@ async function createUserAutomatically(phoneNumber: string) {
         existingUser = users.find(user => user.email === email);
       }
       
-    if (existingUser) {
+      if (existingUser) {
         console.log(`✅ Usuario ya existe en sistema local: ${existingUser.email}`);
-      return existingUser;
-    }
+        return existingUser;
+      }
 
       // Crear nuevo usuario en sistema local
     const userId = `user_${Date.now()}`;
