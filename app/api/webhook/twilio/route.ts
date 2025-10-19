@@ -328,13 +328,10 @@ export async function POST(request: NextRequest) {
     // Log final
     writeDebugLog('✅ WEBHOOK PRINCIPAL COMPLETADO EXITOSAMENTE');
 
-           // Responder inmediatamente a WhatsApp con logs cortos
+           // Responder inmediatamente a WhatsApp con mensaje simple
            let responseText = '';
            if (numMedia > 0) {
-             const phoneNumber = from.replace('whatsapp:', '').replace('+', '').replace(/\s/g, '');
-             const messageSidShort = messageSid.substring(0, 8);
-             const dropboxTokenStatus = process.env.DROPBOX_REFRESH_TOKEN ? 'Configurado' : 'NO CONFIGURADO';
-             responseText = `✅ PDF recibido!\n📁 Tipo: ${formData.get('MediaContentType0')}\n📱 De: ${phoneNumber}\n🆔 Msg: ${messageSidShort}\n🔄 Procesando...\n📂 Local: tmp-files/${phoneNumber}\n☁️ Dropbox: ${dropboxTokenStatus}\n👤 Usuario: ${phoneNumber}@whatsapp.local\n🔍 Debug: Ver logs en UI`;
+             responseText = 'Tu documento ha sido recibido';
            } else {
              responseText = `✅ Mensaje recibido: "${body}"\n📱 De: ${from}`;
            }
