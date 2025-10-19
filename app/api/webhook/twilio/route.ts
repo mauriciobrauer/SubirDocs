@@ -81,8 +81,24 @@ async function createUserAutomatically(phoneNumber: string) {
     // Crear email basado en el número de teléfono
     const email = `${cleanPhoneNumber}@whatsapp.local`;
     
-    // Verificar si el usuario ya existe
-    const existingUser = users.find(user => user.email === email);
+    // Verificar si estamos en producción
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    
+    let existingUser = null;
+    
+    if (isProduction) {
+      // En producción, verificar en el sistema de memoria
+      try {
+        const { getUserByEmail } = await import('@/lib/users-production');
+        existingUser = getUserByEmail(email);
+      } catch (memoryError) {
+        console.error('❌ Error verificando usuario en memoria:', memoryError);
+      }
+    } else {
+      // En desarrollo, verificar en el array local
+      existingUser = users.find(user => user.email === email);
+    }
+    
     if (existingUser) {
       console.log(`✅ Usuario ya existe: ${existingUser.email}`);
       return existingUser;
@@ -101,22 +117,21 @@ async function createUserAutomatically(phoneNumber: string) {
       createdAt: new Date().toISOString()
     };
 
-          users.push(newUser);
-          
-          // Guardar usuarios en archivo (solo en desarrollo)
-          saveUsersToFile();
-
-          // En producción, también agregar al sistema de memoria
-          const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
-          if (isProduction) {
-            try {
-              const { addUser } = await import('@/lib/users-production');
-              addUser(newUser);
-              console.log(`✅ Usuario agregado al sistema de memoria en producción: ${newUser.email}`);
-            } catch (memoryError) {
-              console.error('❌ Error agregando usuario a memoria en producción:', memoryError);
-            }
-          }
+    if (isProduction) {
+      // En producción, solo usar el sistema de memoria
+      try {
+        const { addUser } = await import('@/lib/users-production');
+        addUser(newUser);
+        console.log(`✅ Usuario agregado al sistema de memoria en producción: ${newUser.email}`);
+      } catch (memoryError) {
+        console.error('❌ Error agregando usuario a memoria en producción:', memoryError);
+        throw memoryError;
+      }
+    } else {
+      // En desarrollo, usar el array local y guardar en archivo
+      users.push(newUser);
+      saveUsersToFile();
+    }
 
           // Notificar que se creó un usuario
           try {
