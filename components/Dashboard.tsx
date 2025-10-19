@@ -29,70 +29,12 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* Componente de estado de procesamiento en tiempo real */}
-      <ProcessingStatus />
-      
       <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
         <div className="space-y-6 sm:space-y-8">
           {/* Sección de debug simple - MOVIDA AL PRINCIPIO */}
           <section>
             <SimpleDebug />
           </section>
-
-          {/* Sección de estado de Twilio - OCULTO TEMPORALMENTE */}
-          {/* <section>
-            <TwilioStatus />
-          </section> */}
-
-          {/* Sección de mensajes recibidos - OCULTO TEMPORALMENTE */}
-          {/* <section>
-            <MessageLog />
-          </section> */}
-
-          {/* Sección de archivos descargados - OCULTO TEMPORALMENTE */}
-          {/* <section>
-            <LocalFiles />
-          </section> */}
-
-          {/* Sección de archivos en Dropbox - OCULTO TEMPORALMENTE */}
-          {/* <section>
-            <DropboxFiles />
-          </section> */}
-
-                 {/* Sección de todos los usuarios - OCULTO TEMPORALMENTE */}
-                 {/* <section>
-                   <AllUsersList />
-                 </section> */}
-
-          {/* Sección de logs de debug - OCULTO TEMPORALMENTE */}
-          {/* <section>
-            <DebugLogs isVisible={true} />
-          </section> */}
-
-          {/* Sección de subida de archivos */}
-          <section>
-            <div className="text-center mb-6 sm:mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 px-4">
-                Gestiona tus documentos
-              </h1>
-              <p className="text-base sm:text-lg text-gray-600 px-4">
-                Sube archivos PDF y DOC a tu Dropbox de forma segura
-              </p>
-            </div>
-            
-            <FileUpload 
-              onUploadSuccess={handleUploadSuccess} 
-              userEmail={user?.email || 'default'} 
-            />
-          </section>
-
-                 {/* Sección de lista de archivos */}
-                 <section>
-                   <FileList 
-                     refreshTrigger={refreshTrigger}
-                     userEmail={user?.email || 'default'} 
-                   />
-                 </section>
         </div>
       </main>
     </div>
