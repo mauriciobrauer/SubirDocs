@@ -1,19 +1,32 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
+  const debugLogs: string[] = [];
+  
   try {
-    console.log('🔥 === DIAGNÓSTICO FIREBASE EN /api/users ===');
-    console.log(`🔑 FIREBASE_SERVICE_ACCOUNT_KEY presente: ${!!process.env.FIREBASE_SERVICE_ACCOUNT_KEY}`);
+    debugLogs.push('🔥 === DIAGNÓSTICO FIREBASE EN /api/users ===');
+    debugLogs.push(`🔑 FIREBASE_SERVICE_ACCOUNT_KEY presente: ${!!process.env.FIREBASE_SERVICE_ACCOUNT_KEY}`);
+    
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+      try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+        debugLogs.push(`✅ FIREBASE_SERVICE_ACCOUNT_KEY es JSON válido`);
+        debugLogs.push(`📧 Client Email: ${serviceAccount.client_email}`);
+        debugLogs.push(`🆔 Project ID: ${serviceAccount.project_id}`);
+      } catch (e) {
+        debugLogs.push(`❌ FIREBASE_SERVICE_ACCOUNT_KEY no es JSON válido: ${e}`);
+      }
+    }
     
     // Intentar usar Firebase primero (si está disponible)
     try {
-      console.log('🔄 Importando Firebase users module...');
+      debugLogs.push('🔄 Importando Firebase users module...');
       const { getAllFirebaseUsers } = await import('@/lib/firebase-users');
-      console.log('✅ Firebase users module importado correctamente');
+      debugLogs.push('✅ Firebase users module importado correctamente');
       
-      console.log('🔄 Obteniendo usuarios de Firebase...');
+      debugLogs.push('🔄 Obteniendo usuarios de Firebase...');
       const firebaseUsers = await getAllFirebaseUsers();
-      console.log(`✅ Usuarios obtenidos desde Firebase: ${firebaseUsers.length} usuarios`);
+      debugLogs.push(`✅ Usuarios obtenidos desde Firebase: ${firebaseUsers.length} usuarios`);
       
       // Transformar usuarios de Firebase al formato esperado
       const users = firebaseUsers.map(user => ({
@@ -31,15 +44,16 @@ export async function GET() {
         source: 'Firebase',
         firebaseWorking: true,
         hasServiceAccountKey: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
-        serviceAccountKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? process.env.FIREBASE_SERVICE_ACCOUNT_KEY.length : 0
+        serviceAccountKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? process.env.FIREBASE_SERVICE_ACCOUNT_KEY.length : 0,
+        debugLogs: debugLogs
       });
       
     } catch (firebaseError) {
-      console.log('❌ === ERROR EN FIREBASE ===');
-      console.log(`❌ Firebase no disponible, usando sistema local`);
-      console.log(`❌ Error Firebase: ${firebaseError instanceof Error ? firebaseError.message : String(firebaseError)}`);
+      debugLogs.push('❌ === ERROR EN FIREBASE ===');
+      debugLogs.push(`❌ Firebase no disponible, usando sistema local`);
+      debugLogs.push(`❌ Error Firebase: ${firebaseError instanceof Error ? firebaseError.message : String(firebaseError)}`);
       if (firebaseError instanceof Error) {
-        console.log(`❌ Stack trace: ${firebaseError.stack}`);
+        debugLogs.push(`❌ Stack trace: ${firebaseError.stack}`);
       }
       
       // Devolver información detallada del error
@@ -49,7 +63,8 @@ export async function GET() {
         firebaseError: firebaseError instanceof Error ? firebaseError.message : String(firebaseError),
         firebaseStack: firebaseError instanceof Error ? firebaseError.stack : undefined,
         hasServiceAccountKey: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
-        serviceAccountKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? process.env.FIREBASE_SERVICE_ACCOUNT_KEY.length : 0
+        serviceAccountKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? process.env.FIREBASE_SERVICE_ACCOUNT_KEY.length : 0,
+        debugLogs: debugLogs
       }, { status: 500 });
       
       // Fallback al sistema anterior si Firebase no está disponible
