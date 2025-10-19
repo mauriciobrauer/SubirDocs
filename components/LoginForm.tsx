@@ -299,6 +299,10 @@ export default function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-6 sm:space-y-8">
         <div>
+          {/* IMAGEN DE PRUEBA PARA VERIFICAR DEPLOY */}
+          <div className="mx-auto h-20 w-20 flex items-center justify-center rounded-full bg-red-500 mb-4">
+            <span className="text-white font-bold text-2xl">🔥</span>
+          </div>
           <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
             <LogIn className="h-6 w-6 text-blue-600" />
           </div>
@@ -308,6 +312,12 @@ export default function LoginForm() {
           <p className="mt-2 text-center text-sm text-gray-600 px-2">
             Elige tu cuenta para gestionar documentos
           </p>
+          {/* MENSAJE DE PRUEBA */}
+          <div className="mt-4 p-4 bg-yellow-200 border border-yellow-400 rounded-md">
+            <p className="text-center text-sm text-yellow-800 font-bold">
+              🚀 PRUEBA DE DEPLOY - Si ves esto, los cambios se están desplegando correctamente
+            </p>
+          </div>
           
           {/* Indicador de conexión SSE y botón de actualizar */}
           <div className="mt-4 flex flex-col items-center space-y-2">
