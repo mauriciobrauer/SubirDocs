@@ -34,6 +34,11 @@ export default function Dashboard() {
       
       <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
         <div className="space-y-6 sm:space-y-8">
+          {/* Sección de debug de Firebase - MOVIDA AL PRINCIPIO */}
+          <section>
+            <FirebaseDebugSimple />
+          </section>
+
           {/* Sección de estado de Twilio - OCULTO TEMPORALMENTE */}
           {/* <section>
             <TwilioStatus />
@@ -63,11 +68,6 @@ export default function Dashboard() {
           {/* <section>
             <DebugLogs isVisible={true} />
           </section> */}
-
-          {/* Sección de debug de Firebase */}
-          <section>
-            <FirebaseDebugSimple />
-          </section>
 
           {/* Sección de subida de archivos */}
           <section>
