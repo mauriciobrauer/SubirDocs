@@ -58,9 +58,14 @@ async function createUserAutomatically(phoneNumber: string) {
     
     // Intentar usar Firebase primero (si está disponible)
     try {
+      console.log('🔥 === INTENTANDO USAR FIREBASE ===');
+      console.log(`🔑 FIREBASE_SERVICE_ACCOUNT_KEY presente: ${!!process.env.FIREBASE_SERVICE_ACCOUNT_KEY}`);
+      
       const { getFirebaseUser, createFirebaseUser } = await import('@/lib/firebase-users');
+      console.log('✅ Firebase users module importado correctamente');
       
       // Verificar si el usuario ya existe en Firebase
+      console.log(`🔍 Verificando si usuario existe en Firebase: ${cleanPhoneNumber}`);
       const existingFirebaseUser = await getFirebaseUser(cleanPhoneNumber);
       if (existingFirebaseUser) {
         console.log(`✅ Usuario ya existe en Firebase: ${existingFirebaseUser.email}`);
@@ -74,6 +79,7 @@ async function createUserAutomatically(phoneNumber: string) {
       }
       
       // Crear nuevo usuario en Firebase
+      console.log(`🔄 Creando nuevo usuario en Firebase: ${email}`);
       const firebaseUser = await createFirebaseUser(email, cleanPhoneNumber, cleanPhoneNumber);
       console.log(`✅ Usuario creado en Firebase: ${firebaseUser.uid}`);
       
@@ -108,8 +114,12 @@ async function createUserAutomatically(phoneNumber: string) {
       };
       
     } catch (firebaseError) {
-      console.log('⚠️ Firebase no disponible, usando sistema de memoria local');
-      console.log(`⚠️ Error Firebase: ${firebaseError instanceof Error ? firebaseError.message : String(firebaseError)}`);
+      console.log('❌ === ERROR EN FIREBASE ===');
+      console.log(`❌ Firebase no disponible, usando sistema de memoria local`);
+      console.log(`❌ Error Firebase: ${firebaseError instanceof Error ? firebaseError.message : String(firebaseError)}`);
+      if (firebaseError instanceof Error) {
+        console.log(`❌ Stack trace: ${firebaseError.stack}`);
+      }
       
       // Fallback al sistema anterior si Firebase no está disponible
       let existingUser = null;
