@@ -56,152 +56,68 @@ async function createUserAutomatically(phoneNumber: string) {
     // Verificar si estamos en producción
     const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     
-    // Intentar usar Firebase primero (si está disponible)
-    try {
-      console.log('🔥 === INTENTANDO USAR FIREBASE ===');
-      console.log(`🔑 FIREBASE_SERVICE_ACCOUNT_KEY presente: ${!!process.env.FIREBASE_SERVICE_ACCOUNT_KEY}`);
-      
-      const { getFirebaseUser, createFirebaseUser } = await import('@/lib/firebase-users');
-      console.log('✅ Firebase users module importado correctamente');
-      
-      // Verificar si el usuario ya existe en Firebase
-      console.log(`🔍 Verificando si usuario existe en Firebase: ${cleanPhoneNumber}`);
-      const existingFirebaseUser = await getFirebaseUser(cleanPhoneNumber);
-      if (existingFirebaseUser) {
-        console.log(`✅ Usuario ya existe en Firebase: ${existingFirebaseUser.email}`);
-        return {
-          id: existingFirebaseUser.uid,
-          email: existingFirebaseUser.email,
-          name: existingFirebaseUser.displayName || cleanPhoneNumber,
-          phoneNumber: cleanPhoneNumber,
-          createdAt: existingFirebaseUser.metadata.creationTime
-        };
-      }
-      
-      // Crear nuevo usuario en Firebase
-      console.log(`🔄 Creando nuevo usuario en Firebase: ${email}`);
-      const firebaseUser = await createFirebaseUser(email, cleanPhoneNumber, cleanPhoneNumber);
-      console.log(`✅ Usuario creado en Firebase: ${firebaseUser.uid}`);
-      
-      // Notificar que se creó un usuario
-      try {
-        const notifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/user-created`;
-        console.log(`📤 Enviando notificación a: ${notifyUrl}`);
-        
-        const notifyResponse = await fetch(notifyUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (notifyResponse.ok) {
-          const notifyData = await notifyResponse.json();
-          console.log('✅ Notificación de usuario creado enviada:', notifyData);
-        } else {
-          console.error('❌ Error en respuesta de notificación:', notifyResponse.status, notifyResponse.statusText);
-        }
-      } catch (notifyError) {
-        console.error('❌ Error enviando notificación de usuario creado:', notifyError);
-      }
-
+    // Usar SOLO Firebase - sin fallback
+    console.log('🔥 === USANDO SOLO FIREBASE ===');
+    console.log(`🔑 FIREBASE_SERVICE_ACCOUNT_KEY presente: ${!!process.env.FIREBASE_SERVICE_ACCOUNT_KEY}`);
+    
+    const { getFirebaseUser, createFirebaseUser } = await import('@/lib/firebase-users');
+    console.log('✅ Firebase users module importado correctamente');
+    
+    // Verificar si el usuario ya existe en Firebase
+    console.log(`🔍 Verificando si usuario existe en Firebase: ${cleanPhoneNumber}`);
+    const existingFirebaseUser = await getFirebaseUser(cleanPhoneNumber);
+    if (existingFirebaseUser) {
+      console.log(`✅ Usuario ya existe en Firebase: ${existingFirebaseUser.email}`);
       return {
-        id: firebaseUser.uid,
-        email: firebaseUser.email || email,
-        name: firebaseUser.displayName || cleanPhoneNumber,
+        id: existingFirebaseUser.uid,
+        email: existingFirebaseUser.email,
+        name: existingFirebaseUser.displayName || cleanPhoneNumber,
         phoneNumber: cleanPhoneNumber,
-        createdAt: firebaseUser.metadata.creationTime
+        createdAt: existingFirebaseUser.metadata.creationTime
       };
+    }
+    
+    // Crear nuevo usuario en Firebase
+    console.log(`🔄 Creando nuevo usuario en Firebase: ${email}`);
+    const firebaseUser = await createFirebaseUser(email, cleanPhoneNumber, cleanPhoneNumber);
+    console.log(`✅ Usuario creado en Firebase: ${firebaseUser.uid}`);
+    
+    // Notificar que se creó un usuario
+    try {
+      const notifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/user-created`;
+      console.log(`📤 Enviando notificación a: ${notifyUrl}`);
       
-    } catch (firebaseError) {
-      console.log('❌ === ERROR EN FIREBASE ===');
-      console.log(`❌ Firebase no disponible, usando sistema de memoria local`);
-      console.log(`❌ Error Firebase: ${firebaseError instanceof Error ? firebaseError.message : String(firebaseError)}`);
-      if (firebaseError instanceof Error) {
-        console.log(`❌ Stack trace: ${firebaseError.stack}`);
-      }
-      
-      // Fallback al sistema anterior si Firebase no está disponible
-      let existingUser = null;
-      
-      if (isProduction) {
-        // En producción, verificar en el sistema de memoria
-        try {
-          const { getUserByEmail } = await import('@/lib/users-production');
-          existingUser = getUserByEmail(email);
-        } catch (memoryError) {
-          console.error('❌ Error verificando usuario en memoria:', memoryError);
+      const notifyResponse = await fetch(notifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         }
-      } else {
-        // En desarrollo, verificar en el array local
-        existingUser = users.find(user => user.email === email);
-      }
-      
-      if (existingUser) {
-        console.log(`✅ Usuario ya existe en sistema local: ${existingUser.email}`);
-        return existingUser;
-      }
-
-      // Crear nuevo usuario en sistema local
-      const userId = `user_${Date.now()}`;
-      const hashedPassword = await bcrypt.hash('password123', 10); // Contraseña por defecto
-      
-      const newUser = {
-        id: userId,
-        email,
-        name: cleanPhoneNumber, // Usar el número como nombre
-        password: hashedPassword,
-        phoneNumber: cleanPhoneNumber,
-        createdAt: new Date().toISOString()
-      };
-
-      if (isProduction) {
-        // En producción, solo usar el sistema de memoria
-        try {
-          const { addUser } = await import('@/lib/users-production');
-          addUser(newUser);
-          console.log(`✅ Usuario agregado al sistema de memoria en producción: ${newUser.email}`);
-        } catch (memoryError) {
-          console.error('❌ Error agregando usuario a memoria en producción:', memoryError);
-          throw memoryError;
-        }
-      } else {
-        // En desarrollo, usar el array local y guardar en archivo
-        users.push(newUser);
-        saveUsersToFile();
-      }
-      
-      // Notificar que se creó un usuario
-      try {
-        const notifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/user-created`;
-        console.log(`📤 Enviando notificación a: ${notifyUrl}`);
-        
-        const notifyResponse = await fetch(notifyUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (notifyResponse.ok) {
-          const notifyData = await notifyResponse.json();
-          console.log('✅ Notificación de usuario creado enviada:', notifyData);
-        } else {
-          console.error('❌ Error en respuesta de notificación:', notifyResponse.status, notifyResponse.statusText);
-        }
-      } catch (notifyError) {
-        console.error('❌ Error enviando notificación de usuario creado:', notifyError);
-      }
-
-      console.log(`✅ Usuario creado automáticamente:`, {
-        id: newUser.id,
-        email: newUser.email,
-        name: newUser.name,
-        phoneNumber: newUser.phoneNumber
       });
 
-      return newUser;
+      if (notifyResponse.ok) {
+        const notifyData = await notifyResponse.json();
+        console.log('✅ Notificación de usuario creado enviada:', notifyData);
+      } else {
+        console.error('❌ Error en respuesta de notificación:', notifyResponse.status, notifyResponse.statusText);
+      }
+    } catch (notifyError) {
+      console.error('❌ Error enviando notificación de usuario creado:', notifyError);
     }
+
+    console.log(`✅ Usuario creado automáticamente en Firebase:`, {
+      id: firebaseUser.uid,
+      email: firebaseUser.email || email,
+      name: firebaseUser.displayName || cleanPhoneNumber,
+      phoneNumber: cleanPhoneNumber
+    });
+
+    return {
+      id: firebaseUser.uid,
+      email: firebaseUser.email || email,
+      name: firebaseUser.displayName || cleanPhoneNumber,
+      phoneNumber: cleanPhoneNumber,
+      createdAt: firebaseUser.metadata.creationTime
+    };
   } catch (error) {
     console.error('❌ Error creando usuario:', error);
     throw error;
