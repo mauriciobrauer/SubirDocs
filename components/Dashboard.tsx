@@ -35,6 +35,15 @@ export default function Dashboard() {
           <section>
             <SimpleDebug />
           </section>
+          
+          {/* Sección de debug adicional */}
+          <section>
+            <div className="bg-green-500 text-white p-8 m-4 rounded-lg">
+              <h1 className="text-2xl font-bold mb-4">✅ DASHBOARD FUNCIONANDO</h1>
+              <p>Si ves esto, el Dashboard se está renderizando correctamente.</p>
+              <p>Usuario: {user ? user.email : 'No logueado'}</p>
+            </div>
+          </section>
         </div>
       </main>
     </div>
