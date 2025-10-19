@@ -13,7 +13,7 @@ import UsersList from './UsersList';
 import AllUsersList from './AllUsersList';
 import DebugLogs from './DebugLogs';
 import ProcessingStatus from './ProcessingStatus';
-import FirebaseDebug from './FirebaseDebug';
+import FirebaseDebugSimple from './FirebaseDebugSimple';
 import { UploadedFile } from '@/types';
 
 export default function Dashboard() {
@@ -66,7 +66,7 @@ export default function Dashboard() {
 
           {/* Sección de debug de Firebase */}
           <section>
-            <FirebaseDebug />
+            <FirebaseDebugSimple />
           </section>
 
           {/* Sección de subida de archivos */}
