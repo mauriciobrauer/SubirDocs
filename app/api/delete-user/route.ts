@@ -39,13 +39,15 @@ export async function DELETE(request: NextRequest) {
           const cleanPhone = userToDelete.phoneNumber.replace(/\D/g, '');
           const uid = cleanPhone.slice(-6);
           
-          firebaseResult = await deleteFirebaseUser(uid);
+          const firebaseDeleted = await deleteFirebaseUser(uid);
           
-          if (firebaseResult.success) {
+          if (firebaseDeleted) {
             console.log(`✅ Usuario eliminado de Firebase: ${uid}`);
             deletedUser = userToDelete;
+            firebaseResult = { success: true, message: `Usuario ${uid} eliminado de Firebase exitosamente` };
           } else {
             console.log(`⚠️ Usuario no encontrado en Firebase: ${uid}`);
+            firebaseResult = { success: false, message: `Usuario ${uid} no encontrado en Firebase` };
           }
         }
       } catch (firebaseError) {
