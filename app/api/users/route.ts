@@ -29,7 +29,9 @@ export async function GET() {
         users,
         count: users.length,
         source: 'Firebase',
-        firebaseWorking: true
+        firebaseWorking: true,
+        hasServiceAccountKey: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
+        serviceAccountKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? process.env.FIREBASE_SERVICE_ACCOUNT_KEY.length : 0
       });
       
     } catch (firebaseError) {
