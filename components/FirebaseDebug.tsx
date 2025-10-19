@@ -12,14 +12,25 @@ export default function FirebaseDebug() {
     setLogs([]);
     
     try {
-      const response = await fetch('/api/firebase-debug');
+      // Usar el endpoint /api/users que ya tiene los logs de Firebase
+      const response = await fetch('/api/users');
       const data = await response.json();
       
-      if (data.success) {
-        setLogs(data.logs);
+      if (data.debugLogs && data.debugLogs.length > 0) {
+        setLogs(data.debugLogs);
+        setShowLogs(true);
+      } else if (data.success) {
+        setLogs([
+          '✅ Firebase está funcionando correctamente',
+          `📊 Usuarios encontrados: ${data.count}`,
+          `📂 Fuente: ${data.source}`,
+          `🔧 Firebase funcionando: ${data.firebaseWorking ? 'Sí' : 'No'}`,
+          `🔑 Service Account Key presente: ${data.hasServiceAccountKey ? 'Sí' : 'No'}`,
+          `📏 Longitud de Service Account Key: ${data.serviceAccountKeyLength || 0}`
+        ]);
         setShowLogs(true);
       } else {
-        setLogs([`❌ Error: ${data.error}`, ...data.logs]);
+        setLogs([`❌ Error: ${data.error}`, `📋 Detalles: ${data.firebaseError || 'No disponible'}`]);
         setShowLogs(true);
       }
     } catch (error) {
