@@ -19,42 +19,99 @@ export async function DELETE(request: NextRequest) {
     const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     
     if (isProduction) {
-      // En producción, usar el sistema de memoria
-      console.log(`⚠️ Modo producción: Eliminación de usuario ${userId} solo en memoria`);
+      // En producción, intentar usar Firebase primero, luego sistema de memoria
+      console.log(`🔄 Modo producción: Eliminando usuario ${userId}`);
       
-      const result = deleteUserFromMemory(userId);
+      let deletedUser = null;
+      let firebaseResult = { success: false, message: 'Firebase no disponible' };
+      let memoryResult = { success: false, message: 'Usuario no encontrado en memoria' };
       
-      if (result.success && result.user) {
+      // Intentar eliminar de Firebase primero
+      try {
+        const { deleteFirebaseUser, getFirebaseUser } = await import('@/lib/firebase-users');
+        
+        // Buscar el usuario por userId o por phoneNumber
+        const allUsers = getAllUsers();
+        const userToDelete = allUsers.find(user => user.id === userId);
+        
+        if (userToDelete && userToDelete.phoneNumber) {
+          // Crear el UID de la misma manera que en createFirebaseUser
+          const cleanPhone = userToDelete.phoneNumber.replace(/\D/g, '');
+          const uid = cleanPhone.slice(-6);
+          
+          firebaseResult = await deleteFirebaseUser(uid);
+          
+          if (firebaseResult.success) {
+            console.log(`✅ Usuario eliminado de Firebase: ${uid}`);
+            deletedUser = userToDelete;
+          } else {
+            console.log(`⚠️ Usuario no encontrado en Firebase: ${uid}`);
+          }
+        }
+      } catch (firebaseError) {
+        console.log('⚠️ Firebase no disponible, usando solo sistema de memoria');
+        console.log(`⚠️ Error Firebase: ${firebaseError instanceof Error ? firebaseError.message : String(firebaseError)}`);
+      }
+      
+      // Si no se eliminó de Firebase, intentar del sistema de memoria
+      if (!deletedUser) {
+        const result = deleteUserFromMemory(userId);
+        
+        if (result.success && result.user) {
+          memoryResult = { success: true, message: 'Usuario eliminado del sistema de memoria' };
+          deletedUser = result.user;
+          console.log(`✅ Usuario eliminado del sistema de memoria: ${result.user.email}`);
+        } else {
+          memoryResult = { success: false, message: result.message };
+          console.log(`❌ Error eliminando usuario del sistema de memoria: ${result.message}`);
+        }
+      }
+      
+      if (deletedUser) {
         // Eliminar carpeta de Dropbox
         let dropboxResult = { success: false, message: 'No se pudo eliminar carpeta de Dropbox' };
         
         try {
-          console.log(`🗑️ Eliminando carpeta de Dropbox para: ${result.user.email}`);
-          const dropboxDeleted = await DropboxAPI.deleteUserFolder(result.user.email);
+          console.log(`🗑️ Eliminando carpeta de Dropbox para: ${deletedUser.email}`);
+          const dropboxDeleted = await DropboxAPI.deleteUserFolder(deletedUser.email);
           
           if (dropboxDeleted) {
             dropboxResult = { success: true, message: 'Carpeta de Dropbox eliminada exitosamente' };
-            console.log(`✅ Carpeta de Dropbox eliminada para: ${result.user.email}`);
+            console.log(`✅ Carpeta de Dropbox eliminada para: ${deletedUser.email}`);
           }
         } catch (dropboxError: any) {
           console.error(`❌ Error eliminando carpeta de Dropbox:`, dropboxError.message);
           dropboxResult = { success: false, message: `Error eliminando carpeta de Dropbox: ${dropboxError.message}` };
         }
         
+        // Notificar via SSE para auto-refresh en tiempo real
+        try {
+          const { notifyUserDeleted } = await import('@/lib/sse-manager');
+          notifyUserDeleted({
+            id: deletedUser.id,
+            email: deletedUser.email,
+            phoneNumber: deletedUser.phoneNumber
+          });
+          console.log('📡 Notificación SSE de eliminación enviada para auto-refresh');
+        } catch (sseError) {
+          console.error('❌ Error enviando notificación SSE:', sseError);
+        }
+        
         return NextResponse.json({
           success: true,
-          message: result.message,
+          message: `Usuario ${deletedUser.email} eliminado exitosamente`,
           deletedUser: {
-            id: result.user.id,
-            email: result.user.email,
-            phoneNumber: result.user.phoneNumber
+            id: deletedUser.id,
+            email: deletedUser.email,
+            phoneNumber: deletedUser.phoneNumber
           },
-          dropboxDeletion: dropboxResult,
-          warning: 'En producción, los cambios no se persisten. El usuario se recreará en el próximo reinicio del servidor.'
+          firebaseDeletion: firebaseResult,
+          memoryDeletion: memoryResult,
+          dropboxDeletion: dropboxResult
         });
       } else {
         return NextResponse.json({ 
-          error: result.message 
+          error: 'Usuario no encontrado en Firebase ni en el sistema de memoria'
         }, { status: 404 });
       }
     }
