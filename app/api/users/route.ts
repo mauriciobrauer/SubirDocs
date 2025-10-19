@@ -58,7 +58,9 @@ export async function GET() {
         count: users.length,
         source: 'Local Memory',
         firebaseWorking: false,
-        firebaseError: firebaseError instanceof Error ? firebaseError.message : String(firebaseError)
+        firebaseError: firebaseError instanceof Error ? firebaseError.message : String(firebaseError),
+        firebaseStack: firebaseError instanceof Error ? firebaseError.stack : undefined,
+        hasServiceAccountKey: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY
       });
     }
 
