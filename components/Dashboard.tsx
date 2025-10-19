@@ -13,7 +13,7 @@ import UsersList from './UsersList';
 import AllUsersList from './AllUsersList';
 import DebugLogs from './DebugLogs';
 import ProcessingStatus from './ProcessingStatus';
-import FirebaseDebugSimple from './FirebaseDebugSimple';
+import DiagnosticPanel from './DiagnosticPanel';
 import { UploadedFile } from '@/types';
 
 export default function Dashboard() {
@@ -34,9 +34,9 @@ export default function Dashboard() {
       
       <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
         <div className="space-y-6 sm:space-y-8">
-          {/* Sección de debug de Firebase - MOVIDA AL PRINCIPIO */}
+          {/* Sección de diagnóstico - MOVIDA AL PRINCIPIO */}
           <section>
-            <FirebaseDebugSimple />
+            <DiagnosticPanel />
           </section>
 
           {/* Sección de estado de Twilio - OCULTO TEMPORALMENTE */}
